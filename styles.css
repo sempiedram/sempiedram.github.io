@@ -1,0 +1,296 @@
+
+:root {
+	font-size: 100%;
+	text-size-adjust: 100%;
+}
+
+body {
+	margin: 0px;
+	font-family: "Noto Sans";
+}
+
+body header {
+	background-color: #9c7eff;
+	color: #FFF;
+	margin: 0px;
+	padding: 2vw;
+	padding-left: 6vw;
+	padding-bottom: 50px;
+}
+
+body header h1 {
+	font-size: 2.2rem;
+	margin: 0px;
+	font-weight: normal;
+}
+
+body header h2 {
+	font-size: 1rem;
+	margin: 0px;
+	margin-left: 0px;
+	font-weight: lighter;
+}
+
+body header a {
+	color: #FFF;
+}
+
+article header {
+	background-color: #CCC;
+	color: #FFF;
+	margin: 0px;
+	padding: 10pt;
+	padding-top: 5pt;
+	padding-left: 25pt;
+}
+
+body > footer {
+}
+
+article > footer {
+	border-top: 1px solid black;
+	background: #555;
+	color: #EEE;
+	font-family: "Arial";
+	font-weight: normal;
+	padding: 15px;
+	padding-top: 10px;
+	padding-left: 40px;
+	height: 200px;
+}
+
+body main {
+	font-size: 1rem;
+	display: flex;
+	justify-content: center;
+}
+
+body article main {
+	background-color: #e6e6e6;
+	display: block;
+	justify-content: left;
+	padding: 15px;
+}
+
+body main article {
+	width: 70%;
+	/* border: black 1px solid; */
+}
+
+article header h1 {
+	color: #4d4d4d;
+	font-size: 2rem;
+	font-family: "Noto Sans";
+	font-weight: normal;
+	margin: 0px;
+}
+
+@keyframes linkBackground {
+	from {
+	}
+	to {
+		background-color: #FFF;
+	}
+}
+
+td:nth-child(1) {
+	text-align: right;
+}
+
+td, th {
+	border: 1px solid black;
+	padding: 3px;
+}
+
+th {
+	border: 2px solid black;
+}
+
+a:hover {
+	animation-duration: 0.5s;
+	animation-iteration-count: 1;
+	animation-name: linkBackground;
+	animation-fill-mode: forwards;
+}
+
+article header a {
+	font-size: .9rem;
+	/*color: #ff0081;*/
+	color: #676767;
+	display: inline-flex;
+	padding-top: 5pt;
+}
+
+article .theorem header a {
+	font-weight: bold;
+}
+
+article .theorem {
+	background: white;
+	padding: 10px;
+	border: 1px solid black;
+	font-size: 18px;
+	font-family: "Arial";
+	margin-top: 20px;
+}
+
+article .theorem p {
+	padding-left: 20px;
+	padding-right: 20px;
+}
+
+article .comment {
+	font-size: 12px;
+	color: #7C7C7C;
+}
+
+ul {
+	list-style-image: url("listA.png");
+}
+
+ul ul {
+	list-style-image: url("listB.png");
+}
+
+article main h1 {
+	font-size: 32px;
+	color: black;
+	border-bottom: 2px solid gray;
+}
+article main h2 {
+	font-size: 24px;
+	color: black;
+	border-bottom: 1px solid gray;
+}
+article main h3 {
+	font-size: 1.1em;
+	color: #555555
+	color: lightsteelblue;
+}
+
+article main :is(h4, h5, h6) {
+	border-bottom: 1px dotted gray;
+}
+
+article .littleBox {
+	display: block;
+	flex: none;
+	padding: 5px;
+	background: white;
+	border: 1px solid black;
+}
+
+div.diagramBox {
+	border: 1px solid black;
+	display: flex;
+	/* align-items: center; */
+	/* justify-content: center; */
+	flex-direction: row;
+	background: white;
+	overflow: auto;
+	padding: 20px;
+	margin-top: 20px;
+}
+
+div.diagramBox > :first-child {
+	display: flex;
+	width: max-content;
+	margin: auto;
+}
+
+div.diagramContents > :last-child {
+	margin-right: 20px;
+}
+
+div.quoteBox {
+	border: 1px solid black;
+	display: flex;
+	font-style: italic;
+	flex-direction: row;
+	background: white;
+	overflow: auto;
+	padding: 20px;
+	margin-top: 20px;
+}
+
+div.quoteBox header {
+	font-style: normal;
+}
+
+div.quoteBox > :nth-child(2)::before {
+	content: open-quote;
+}
+
+div.quoteBox > :nth-child(2)::after {
+	content: close-quote;
+}
+
+div.quoteBox > :nth-child(2) {
+	margin-left: 20px;
+	display: flex;
+	align-items: center;
+}
+
+div.quoteBox > :last-child {
+	margin-right: 20px;
+}
+
+.TODOList {
+	background: #FFF;
+}
+
+.TODOList li {
+}
+
+.TODOList li.notDone {
+	font-weight: bold;
+}
+
+.TODOList li.done {
+	text-decoration: line-through;
+	font-weight: normal;
+}
+
+.TODOList li.done {
+	color: gray;
+	text-decoration: line-through;
+	font-weight: normal;
+}
+
+.TODOList li.didnt {
+	color: red;
+	text-decoration: line-through;
+	font-weight: normal;
+}
+
+.timestamp {
+    display: block;
+    text-align: center;
+    border-bottom: 1px solid black;
+    font-weight: bold;
+}
+
+article table {
+	border-spacing: 0px;
+	background: white;
+	/* font-size: 12px; */
+}
+
+article table th {
+	border: 1px solid black;
+	background: #777;
+	color: white;
+}
+
+article table td {
+	border: 1px solid black;
+}
+
+@media (max-width: 1000px) {
+	:root {
+		font-size: 100%;
+	}
+	body main article {
+		width: 100%;
+	}
+}
