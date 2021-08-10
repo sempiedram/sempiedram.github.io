@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Kevin Piedra - DSM</title>
+        <link href="./style.css" type="text/css" rel="stylesheet">
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.3/howler.min.js" integrity="sha512-6+YN/9o9BWrk6wSfGxQGpt3EUK6XeHi6yeHV+TYD2GR0Sj/cggRpXr1BrAQf0as6XslxomMUxXp2vIl+fv0QRA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/6.0.4/browser/pixi.js" integrity="sha512-FC+B7IsEcnbzMzD5jbNblIYOGfQU59FlO3TXXAptESpHTDq/7xjG5F1vdlmbitePkdTlDMB7M6bbLbFGDUlBeg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    </head>
+    <body>
+        <main>
+            <div id="game"></div>
+            <script src="./demogame.js"></script>
+            <script src="./gamesetup.js"></script>
+            <div class="orientationsContainer">
+                <button id="landscapeButton" type="button"><img draggable="false" src="./assets/images/sizeButtons/landscape.png" alt="Mobile Landscape" /></button>
+                <button id="portraitButton" type="button"><img draggable="false" src="./assets/images/sizeButtons/portrait.png" alt="Mobile Portrait" /></button>
+                <button id="pcButton" type="button"><img draggable="false" src="./assets/images/sizeButtons/monitor.png" alt="PC" /></button>
+                <button id="pcBigButton" type="button"><img draggable="false" src="./assets/images/sizeButtons/monitor.png" alt="PC" /></button>
+                <button id="wideButton" type="button"><img draggable="false" src="./assets/images/sizeButtons/wideMonitor.png" alt="Wide" /></button>
+            </div>
+
+            <div class="storytime">
+                <h1>Kevin Piedra - Demo Slot Machine</h1>
+            <p>
+I wanted to create some kind of interactive app with Javascript, since I had only used JS in very very small things, and had only learned the basics. I also wanted to have something to show, as to say "Hey, I am not useless!". I decided that a slots machine would be relevant enough.
+            </p>
+
+            <p>
+I started reading about the state of the Javascript development world, and about things I had read before: Node.js & NPM, AJAX & fetch(), API's, and a bunch of stuff in the MDN Web Docs. It was a <i><b>lot</b></i> of information, but I went through it. It took some good hours.
+            </p>
+
+            <p>
+I set up a little npm folder try out tools that people recommend: Webpack, Parcel, Typescript, Babel. There is lots to learn there too, and I had already learned enough (to my liking) recently, so I chose Parcel, which kinda' works without requiring much setup. Now I only had to install PIXI.js, import it (learn about the import system in Node.js vs ES6), and then just put some graphics on the screen and the game is done! Right?
+            </p>
+
+            <p>
+Well, No. I found that I had to deal with the new* (to me) way Javascript does asynchronous execution because PixiJS uses it. So I read on MDN about async, await, thenable objects, Promises(), and the event queue. It wasn't hard to understand the concepts, the problem was that, initially, I was doing everything in an imperative programming mindset (you know, like C, C++, etc), so I had to redo some stuff, and force some async stuff to look more like imperative stuff. Not so good looking code resulted. But now I know.
+            </p>
+
+            <p>
+I marched forward to create something that looks usable, and I did it! Parcel provides a development server with hot swapping and continuous "compilation", which was cool, but it broke. Apparently Parcel has some bugs (properly reported on their GitHub repo), which make it really hard to debug with it (bad obfuscated code source maps -> you don't know where the error happened). So I retired Parcel, and stuck to using the <code>python -m http.server 8888</code> local server trick to debug.
+            </p>
+
+            <p>
+Now with a Minimum Viable Product, it was time to think about how to deploy it so that other people may see this thing. I wanted it to be private (require a password), and made with C# and ASP.NET Core (which I had never touched). So I went through another learning journey. I found that I didn't want to serve the libraries my game depended on, so I trashed NPM, and went with a simple <code>&lt;script&gt;</code> tag from some free CDN.
+            </p>
+
+            <p>
+I now had a basic "web site" (with a small SQL database to keep track of user sessions) that serves my app. I published it to an Azure free tier server (had to learn how to use Azure; I had only ever used GCP, and AWS), and it was online.
+            </p>
+
+            <p>
+There are other troubles that I found myself in, but I either hid them, or overcame them. If I had to publish the game, I could improve it a lot, knowing what I know now, but I think it's enough for a demo.
+            </p>
+
+            <p class="smallpp">
+Also, I had to serve it from my free GitHub pages site, because my 30 days free host expired.
+            </p>
+
+            </div>
+        </main>
+    </body>
+</html>
