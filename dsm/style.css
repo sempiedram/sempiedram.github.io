@@ -47,3 +47,17 @@ main {
 .smallpp {
     font-size: 12pt;
 }
+
+.myinfo {
+    background-color: rgb(214, 229, 255);
+    padding-top: 10pt;
+    padding-left: 15pt;
+    padding-right: 15pt;
+    padding-bottom: 10pt;
+    margin-top: 15pt;
+    margin-bottom: 20pt;
+    border-radius: 25px;
+    text-align: center;
+    font-family: Verdana, Geneva, Tahoma, sans-serif;
+    font-size: 16pt;
+}

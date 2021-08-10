@@ -44,9 +44,6 @@ article header {
 	padding-left: 25pt;
 }
 
-body > footer {
-}
-
 article > footer {
 	border-top: 1px solid black;
 	background: #555;
@@ -77,10 +74,11 @@ body main article {
 	/* border: black 1px solid; */
 }
 
+
 article header h1 {
 	color: #4d4d4d;
 	font-size: 2rem;
-	font-family: "Noto Sans";
+	font-family: Verdana, Geneva, Tahoma, sans-serif;
 	font-weight: normal;
 	margin: 0px;
 }
