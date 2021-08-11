@@ -162,8 +162,7 @@ article main h2 {
 }
 article main h3 {
 	font-size: 1.1em;
-	color: #555555
-	color: lightsteelblue;
+	color: #555555;
 }
 
 article main :is(h4, h5, h6) {
