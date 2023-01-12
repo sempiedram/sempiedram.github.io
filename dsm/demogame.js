@@ -618,7 +618,7 @@ class GameDemo {
         this.fullscreenButton = PIXI.Sprite.from("fullscreenButton");
         this.reelsButton = PIXI.Sprite.from(this.reelConfigurations[this.currentReelConfiguration].buttonTextureId);
         
-        this.toggleSoundButton = PIXI.Sprite.from("soundOnButton");
+        this.toggleSoundButton = PIXI.Sprite.from("soundHalfButton");
         this.settingsButton = PIXI.Sprite.from("settingsButton");
         this.autoPlayButton = PIXI.Sprite.from("autoPlayButton");
         
@@ -778,13 +778,9 @@ class GameDemo {
             console.log(`${window.screen.width}, ${window.screen.height}`);
             this.app.view.requestFullscreen();
             
-            let screenRatio = window.screen.width/window.screen.height;
+            let screenRatio = window.screen.width/window.screen.height; 
+            this.resizeTo(window.screen.width, window.screen.height);
             
-            if(screenRatio < 1) {
-                this.resizeTo(window.screen.width * window.devicePixelRatio, window.screen.height * window.devicePixelRatio);
-            }else {
-                this.resizeTo(window.innerWidth * window.devicePixelRatio, window.innerHeight * window.devicePixelRatio);
-            }
             
         }else {
             document.exitFullscreen();
