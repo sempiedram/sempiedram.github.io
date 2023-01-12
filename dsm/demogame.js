@@ -401,7 +401,7 @@ class GameDemo {
         this.paddingSymbols = 3; // Extra symbols that may be shown above and below real symbols in the spinning animation
         
         
-        this.soundOn = true;
+        this.soundOn = 1;
         this.balance = 10000; // TODO: IMPORTANT: Use a different type to store balance. For example: https://github.com/MikeMcl/decimal.js/, or ints with a big multiplier 1000000 = 1.0
         
         this.betIndexSelected = 5;
@@ -520,6 +520,7 @@ class GameDemo {
             "fullscreenButton": "./images/ui/fullscreen.png",
             "settingsButton":   "./images/ui/settings.png",
             "soundOffButton":   "./images/ui/soundOff.png",
+            "soundHalfButton":    "./images/ui/soundHalf.png",
             "soundOnButton":    "./images/ui/soundOn.png",
             "spinButton":       "./images/ui/spin.png",
             "stopButton":       "./images/ui/stop.png",
@@ -1105,14 +1106,18 @@ class GameDemo {
     toggleSound() {
         this.sounds.buttonClick.play();
         
-        this.soundOn = !this.soundOn;
-        
-        if(this.soundOn) {
+        if(this.soundOn == 0) {
             Howler.volume(0.7);
             this.toggleSoundButton.texture = PIXI.Loader.shared.resources["soundOnButton"].texture;
-        }else {
+            this.soundOn = 1;
+        } else if (this.soundOn == 1) {
+            Howler.volume(0.1);
+            this.toggleSoundButton.texture = PIXI.Loader.shared.resources["soundHalfButton"].texture;
+            this.soundOn = 0.5;
+        } else {
             Howler.volume(0);
             this.toggleSoundButton.texture = PIXI.Loader.shared.resources["soundOffButton"].texture;
+            this.soundOn = 0;
         }
     }
     
