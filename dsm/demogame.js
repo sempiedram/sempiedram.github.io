@@ -401,7 +401,7 @@ class GameDemo {
         this.paddingSymbols = 3; // Extra symbols that may be shown above and below real symbols in the spinning animation
         
         
-        this.soundOn = 1;
+        this.soundOn = 0.5;
         this.balance = 10000; // TODO: IMPORTANT: Use a different type to store balance. For example: https://github.com/MikeMcl/decimal.js/, or ints with a big multiplier 1000000 = 1.0
         
         this.betIndexSelected = 5;
@@ -565,13 +565,13 @@ class GameDemo {
             src: this.assetsFolder + "./sounds/click.wav"
         });
         this.sounds.backgroundMusic = new Howl({
-            src: this.assetsFolder + "./sounds/march of the preobrazhensky regiment.ogg",
+            src: this.assetsFolder + "./sounds/tunetank.com_5412_rooftop-sunsets_by_alexey-anisimov.mp3",
             autoplay: true,
             loop: true,
             volume: 0.4
         });
         
-        Howler.volume(0.6);
+        Howler.volume(0.1);
         
         this.createElements(pixiLoader, pixiResources, onloadCallback);
     }
@@ -1161,10 +1161,8 @@ class GameDemo {
         this.sounds.reelClick.play();
         this.autoPlay = !this.autoPlay;
         if(this.autoPlay) {
-            this.spinningDuration /= 3;
             this.autoPlayButton.tint = 0xFF0000;
         }else {
-            this.spinningDuration *= 3;
             this.autoPlayButton.tint = 0xFFFFFF;
         }
     }
