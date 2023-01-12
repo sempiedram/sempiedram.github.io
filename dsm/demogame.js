@@ -657,7 +657,7 @@ class GameDemo {
         
         this.textStyle = new PIXI.TextStyle({
             fontFamily: "Arial",
-            fontSize: 40 / window.devicePixelRatio,
+            fontSize: this.app.view.width/45,
             //fontWeight: "bold",
             fill: "#FFFFFF",
             stroke: "#000000",
@@ -1198,6 +1198,9 @@ class GameDemo {
         
         if(canvasRatio > 1) {
             // Landscape case
+            
+            // Update text size:
+            this.textStyle.fontSize = this.app.view.width/48;
         
             // Scaling of UI components:
             scaleToSpecificHeight(this.spinButton, units * 25, this.spinButton.texture.height);
@@ -1242,6 +1245,9 @@ class GameDemo {
                 this.toggleSoundButton.y - units * 13);
         }else {
             // Portrait case
+            
+            // Update text size:
+            this.textStyle.fontSize = this.app.view.width/17;
         
             // Scaling of UI components:
             scaleToSpecificHeight(this.spinButton, units * 30, this.spinButton.texture.height);
@@ -1339,6 +1345,10 @@ class GameDemo {
         
         this.reelsContainer.x = centeredOn(allReelsWidth, this.playArea.x, this.playArea.width);
         this.reelsContainer.y = centeredOn(reelHeight, this.playArea.y, this.playArea.height);
+        
+        
+        // Also update text size
+        
         
         if(!this.debug) {
             let mask = new PIXI.Graphics()
