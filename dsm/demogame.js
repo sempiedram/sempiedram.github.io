@@ -630,7 +630,7 @@ class GameDemo {
             this.reelsButton,
             
             this.toggleSoundButton,
-            this.settingsButton,
+            //this.settingsButton,
             this.autoPlayButton,
         ];
         
@@ -1226,8 +1226,8 @@ class GameDemo {
                 this.spinButton.y + this.spinButton.height + units * 3);
             
             this.fullscreenButton.position.set(
-                leftLimit + units * 3,
-                units * 3);
+                leftLimit + units * 4,
+                units * 4);
                 
             this.fastSpinButton.position.set(
                 this.spinButton.x + this.spinButton.width - this.fastSpinButton.width, 
@@ -1238,7 +1238,7 @@ class GameDemo {
                 this.spinButton.y + this.spinButton.height + units * 3);
             
             this.settingsButton.position.set(
-                leftLimit + units * 3,
+                leftLimit + units * 16,
                 this.toggleSoundButton.y - units * 13);
             
             this.betButton.position.set(
@@ -1246,7 +1246,7 @@ class GameDemo {
                 this.spinButton.y + this.spinButton.height + units * 3);
             
             this.reelsButton.position.set(
-                leftLimit + units * 16,
+                leftLimit + units * 3,
                 this.toggleSoundButton.y - units * 13);
         }else {
             // Portrait case
@@ -1273,8 +1273,8 @@ class GameDemo {
                 this.spinButton.y + this.spinButton.height + units * 3);
             
             this.fullscreenButton.position.set(
-                leftLimit + units * 3,
-                units * 3);
+                leftLimit + units * 4,
+                units * 4);
             
             this.fastSpinButton.position.set(
                 this.spinButton.x + this.spinButton.width - this.fastSpinButton.width,
@@ -1293,7 +1293,7 @@ class GameDemo {
                 this.spinButton.y + this.spinButton.height + units * 3);
             
             this.reelsButton.position.set(
-                canvasWidth - this.settingsButton.width - this.reelsButton.width - units * 3 - units * 2.5,
+                canvasWidth - this.reelsButton.width - units * 3 - units * 2.5,
                 this.spinButton.y + this.spinButton.height + units * 3);
             
             
