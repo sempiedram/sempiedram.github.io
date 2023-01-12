@@ -568,7 +568,7 @@ class GameDemo {
             src: this.assetsFolder + "./sounds/tunetank.com_5412_rooftop-sunsets_by_alexey-anisimov.mp3",
             autoplay: true,
             loop: true,
-            volume: 0.4
+            volume: 0.5
         });
         
         Howler.volume(0.1);
@@ -1418,4 +1418,3 @@ class GameDemo {
         this.relayout();
     }
 }
-

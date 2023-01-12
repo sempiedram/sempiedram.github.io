@@ -6,6 +6,20 @@ async function game_init() {
     game.app.view.onselectstart = () => false;
     document.getElementById("game").appendChild(game.app.view);
     
+    window.onfocus = (e) => {
+        if(game.soundOn == 0) {
+            Howler.volume(0);
+        } else if(game.soundOn == 1) {
+            Howler.volume(0.7);
+        } else {
+            Howler.volume(0.1);
+        }
+    };
+    
+    window.onblur = (e) => {
+        Howler.volume(0);
+    };
+    
     let canvasSizeButtons = {
         "landscapeButton": {
             name: "Landscape Mobile", 
