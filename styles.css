@@ -39,13 +39,10 @@ body {
 .sofdevbox {
 	background-color: var(--kspm-color-light-background);
 	height: 100px;
-	width: 100vw;
+	width: 100%;
 	position: relative;
-	left: 50%;
-	right: 50%;
-	margin-left: -50vw;
-	margin-right: -50vw;
 	margin-top: -10px;
+	margin-bottom: 20px;
 }
 
 .softdevtext {
