@@ -409,6 +409,7 @@ class GameDemo {
         
         this.playingAnimation = false; // Whether the spinning animation is currently playing
         this.fastSpinning = false;
+        this.autoPlay = false;
         this.spinningStart = 0;
         this.spinningDuration = 4200; // In milliseconds
         
@@ -651,6 +652,7 @@ class GameDemo {
         this.betButton.on("pointerdown", e => this.changeBet());
         this.fastSpinButton.on("pointerdown", e => this.toggleFastSpin());
         this.reelsButton.on("pointerdown", e => this.nextReelLayout());
+        this.autoPlayButton.on("pointerdown", e => this.toggleAutoPlay());
         
         
         this.graphicsOverlay = new PIXI.Graphics();
@@ -699,6 +701,7 @@ class GameDemo {
      */
     nextReelLayout() {
         if(this.playingAnimation) return;
+        this.sounds.buttonClick.play();
         
         this.currentReelConfiguration++;
         this.currentReelConfiguration %= this.reelConfigurations.length;
@@ -873,9 +876,15 @@ class GameDemo {
                 
                 if(this.lineWinsToAnimate.length == 0) {
                     this.playingAnimation = false;
+                    setTimeout(() => {   
+                        if(this.autoPlay) {
+                            this.doSpin();
+                        }
+                    }, 500);
                 }else {
                     this.app.ticker.add(this.winAnimations, this);
                 }
+            
             }
         }
     }
@@ -946,6 +955,13 @@ class GameDemo {
                     this.updateBalance();
                 }, 500);
             }, 500);
+            
+            
+            if(this.autoPlay) {
+                setTimeout(() => {   
+                        this.doSpin();
+                }, 2000);
+            }
             
         }else {
             let timeElapsed = Date.now() - firstLine.start;
@@ -1126,6 +1142,7 @@ class GameDemo {
      */
     toggleFastSpin() {
         if(!this.playingAnimation) {
+            this.sounds.reelClick.play();
             this.fastSpinning = !this.fastSpinning;
             if(this.fastSpinning) {
                 this.spinningDuration /= 3;
@@ -1134,6 +1151,21 @@ class GameDemo {
                 this.spinningDuration *= 3;
                 this.fastSpinButton.tint = 0xFFFFFF;
             }
+        }
+    }
+    
+    /**
+     * Continuosly spins until there is no cash!
+     */
+    toggleAutoPlay() {
+        this.sounds.reelClick.play();
+        this.autoPlay = !this.autoPlay;
+        if(this.autoPlay) {
+            this.spinningDuration /= 3;
+            this.autoPlayButton.tint = 0xFF0000;
+        }else {
+            this.spinningDuration *= 3;
+            this.autoPlayButton.tint = 0xFFFFFF;
         }
     }
 
