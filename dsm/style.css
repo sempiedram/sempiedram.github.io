@@ -67,7 +67,8 @@ main {
     font-weight: 200;
     font-family: Cambria, Cochin, Georgia, Times, 'Times New Roman', serif;
     text-align: center;
-    background-color: #dee0e0;
+    background-color: #f6f6f6;
+    border: 1px solid rgb(8, 174, 72);
     padding-top: 10pt;
     padding-left: 15pt;
     padding-right: 15pt;
