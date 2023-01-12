@@ -1,12 +1,93 @@
 
+
 :root {
 	font-size: 100%;
 	text-size-adjust: 100%;
+	
+	--kspm-color-darker: #002255ff;
+	--kspm-color-dark: #0044aaff;
+	--kspm-color-light: #0055d4ff;
+	--kspm-color-light-background: #eef5ffff;
+}
+
+
+.dark_scolor {
+	color: var(--kspm-color-dark);
+}
+
+.light_scolor {
+	color: var(--kspm-color-light);
 }
 
 body {
-	margin: 0px;
+	padding-top: 150px
+}
+
+.namebox {
+	margin: auto;
+	display: block;
+	position: relative;
+	top: -40px;
+	max-width: 370px;
+	padding: 10px;
+	border: 3px solid #0044aaff;
+	background-color: white;
+	border-radius: 6px;
+	padding-top: -50px;
+}
+
+.sofdevbox {
+	background-color: var(--kspm-color-light-background);
+	height: 100px;
+	width: 100vw;
+	position: relative;
+	left: 50%;
+	right: 50%;
+	margin-left: -50vw;
+	margin-right: -50vw;
+	margin-top: -10px;
+}
+
+.softdevtext {
+	position: relative;
+	font-size: 1.6rem;
+	top: -32px;
+	font-family: 'Noto Sans', sans-serif;
+	font-weight: 100;
+}
+
+.section-title {
+	font-family: "Exo", sans-serif;
+	font-weight: bold;
+	font-size: 1.5rem;
+	color: var(--kspm-color-darker);
+}
+
+.section-subtitle {
 	font-family: "Noto Sans", sans-serif;
+	font-weight: bold;
+	font-size: 1.5rem;
+	color: var(--kspm-color-dark);
+}
+
+.section-text {
+	font-size: 1.2rem;
+}
+
+.dates-subtitle {
+	font-family: "Noto Sans", sans-serif;
+	font-weight: bold;
+	font-size: 1.2rem;
+	color: var(--kspm-color-darker);
+}
+
+.special-highlight {
+	font-weight: bold;
+	color: var(--kspm-color-light);
+}
+
+.exo-font {
+	font-family: "Exo", sans-serif;
 }
 
 body header {
@@ -83,22 +164,10 @@ article header h1 {
 	margin: 0px;
 }
 
-@keyframes linkBackground {
-	from {
-	}
-	to {
-		background-color: #FFF;
-	}
+td {
+	text-align: center;
 }
 
-td:nth-child(1) {
-	text-align: right;
-}
-
-td, th {
-	border: 1px solid black;
-	padding: 3px;
-}
 
 th {
 	border: 2px solid black;
@@ -140,14 +209,6 @@ article .theorem p {
 article .comment {
 	font-size: 12px;
 	color: #7C7C7C;
-}
-
-ul {
-	list-style-image: url("listA.png");
-}
-
-ul ul {
-	list-style-image: url("listB.png");
 }
 
 article main h1 {
@@ -230,41 +291,6 @@ div.quoteBox > :nth-child(2) {
 
 div.quoteBox > :last-child {
 	margin-right: 20px;
-}
-
-.TODOList {
-	background: #FFF;
-}
-
-.TODOList li {
-}
-
-.TODOList li.notDone {
-	font-weight: bold;
-}
-
-.TODOList li.done {
-	text-decoration: line-through;
-	font-weight: normal;
-}
-
-.TODOList li.done {
-	color: gray;
-	text-decoration: line-through;
-	font-weight: normal;
-}
-
-.TODOList li.didnt {
-	color: red;
-	text-decoration: line-through;
-	font-weight: normal;
-}
-
-.timestamp {
-    display: block;
-    text-align: center;
-    border-bottom: 1px solid black;
-    font-weight: bold;
 }
 
 article table {

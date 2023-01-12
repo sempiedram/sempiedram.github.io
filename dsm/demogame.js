@@ -657,7 +657,7 @@ class GameDemo {
         
         this.textStyle = new PIXI.TextStyle({
             fontFamily: "Arial",
-            fontSize: 20 * window.devicePixelRatio,
+            fontSize: 40 / window.devicePixelRatio,
             //fontWeight: "bold",
             fill: "#FFFFFF",
             stroke: "#000000",
