@@ -37,7 +37,7 @@
 		</div>
         
         <main>
-            <div id="game"></div>
+            <div id="game" style="border-radius: 30px; overflow: hidden;"></div>
             <script src="./demogame.js"></script>
             <script src="./gamesetup.js"></script>
             <div class="orientationsContainer">
@@ -51,7 +51,7 @@
             <div class="warning">Even though it might work, this demo wasn't made for phones or tablets.</div>
             
             <div class="myinfo">
-                <p>Hi! I am Kevin Piedra, and I made this little demo because I'm looking for a job.</p>
+                <p>Hi! I am <b>Kevin Piedra</b>, and I made this little demo because I'm looking for a job.</p>
 						
                 <p class="fw-bold">Here's my CV (pdf):</p>
                 <a class="btn btn-primary btn-lg" href="/Kevin_Piedra_CV_2023.pdf" download>English</a>
@@ -59,43 +59,44 @@
             </div>
 
             <div class="storytime">
-                <h1>Kevin Piedra - Demo Slot Machine</h1>
+                <h1 class="fw-bold">Kevin Piedra - Demo Slot Machine</h1>
                 <h2>August 10, 2021</h2>
-            <p>
-                I wanted to create some kind of interactive app with Javascript, since I had only used JS in small projects and experiments. I also wanted to have something to show. Therefore, I decided a slots machine would be the perfect fit.
-            </p>
+                
+                <p>
+                    I wanted to create some kind of interactive app with Javascript, since I had only used JS in small projects and experiments. I also wanted to have something to show. Therefore, I decided a slots machine would be the perfect fit.
+                </p>
 
-            <p>
-                I started reading about the state of the JavaScript development world, and about things I had heard about before: Node.js & NPM, AJAX & fetch(), API's, and a bunch of stuff in the MDN Web Docs. It was a <span style="font-weight: bold;"><i>lot</i></span> of information, but I went through it. It took some good hours.
-            </p>
+                <p>
+                    I started reading about the state of the JavaScript development world, and about things I had heard about before: Node.js & NPM, AJAX & fetch(), API's, and a bunch of stuff in the MDN Web Docs. It was a <span style="font-weight: bold;"><i>lot</i></span> of information, but I went through it. It took some good hours.
+                </p>
 
-            <p>
-                I set up a little npm folder to try out tools that people recommend: Webpack, Parcel, Typescript, Babel. There is lots to learn there, but I decided to chose Parcel, which works pretty well without requiring much setup. Now I only had to install PIXI.js, import it (<i>learn about the import system in Node.js vs ES6</i>), and then just put some graphics on the screen and the game is done! Right?
-            </p>
+                <p>
+                    I set up a little npm folder to try out tools that people recommend: Webpack, Parcel, Typescript, Babel. There is lots to learn there, but I decided to chose Parcel, which works pretty well without requiring much setup. Now I only had to install PIXI.js, import it (<i>learn about the import system in Node.js vs ES6</i>), and then just put some graphics on the screen and the game is done! Right?
+                </p>
 
-            <p>
-                Well, No. I found that I had to deal with the new* (to me) way JS does asynchronous execution because PixiJS uses it. So I read on MDN about async, await, thenable objects, Promises(), and the event queue. It wasn't hard to understand the concepts, the problem was that initially I was doing everything in an imperative programming mindset (you know, like C, C++, etc), so I had to redo some parts of the code and implement them with an async mindset.
-            </p>
+                <p>
+                    Well, No. I found that I had to deal with the new* (to me) way JS does asynchronous execution because PixiJS uses it. So I read on MDN about async, await, thenable objects, Promises(), and the event queue. It wasn't hard to understand the concepts, the problem was that initially I was doing everything in an imperative programming mindset (you know, like C, C++, etc), so I had to redo some parts of the code and implement them with an async mindset.
+                </p>
 
-            <p>
-                I marched forward to create something that looks usable, and I did it! Parcel provides a development server with hot swapping and continuous "compilation", which was cool, but it broke. Apparently Parcel has some bugs (properly reported on their GitHub repo), which make it really hard to debug with it (bad obfuscated code source maps -> you don't know where the error happened). So I retired Parcel, and stuck to using the <code>python -m http.server 8888</code> local server Python module to debug.
-            </p>
+                <p>
+                    I marched forward to create something that looks usable, and I did it! Parcel provides a development server with hot swapping and continuous "compilation", which was cool, but it broke. Apparently Parcel has some bugs (properly reported on their GitHub repo), which make it really hard to debug with it (bad obfuscated code source maps -> you don't know where the error happened). So I retired Parcel, and stuck to using the <code>python -m http.server 8888</code> local server Python module to debug.
+                </p>
 
-            <p>
-                Now with a Minimum Viable Product, it was time to think about how to deploy it so that other people may see this thing. I wanted it to be private (require a password), and made with C# and ASP.NET Core (which I had never touched). So I went through another learning journey. I found that I didn't want to serve the libraries my game depended on, so I trashed NPM, and went with a simple <code>&lt;script&gt;</code> tag from some free CDN.
-            </p>
+                <p>
+                    Now with a Minimum Viable Product, it was time to think about how to deploy it so that other people may see this thing. I wanted it to be private (require a password), and made with C# and ASP.NET Core (which I had never touched). So I went through another learning journey. I found that I didn't want to serve the libraries my game depended on, so I trashed NPM, and went with a simple <code>&lt;script&gt;</code> tag from some free CDN.
+                </p>
 
-            <p>
-                I now had a basic "web site" (with a small SQL database to keep track of user sessions) that serves my app. I published it to an Azure free tier server (had to learn how to use Azure; I had only ever used GCP, and AWS), and it was online.
-            </p>
+                <p>
+                    I now had a basic "web site" (with a small SQL database to keep track of user sessions) that serves my app. I published it to an Azure free tier server (had to learn how to use Azure; I had only ever used GCP, and AWS), and it was online.
+                </p>
 
-            <p>
-                There are other troubles that I found myself in, but I either hid them, or overcame them. If I had to publish the game, I could improve it a lot, knowing what I know now, but I think it's enough for a demo.
-            </p>
+                <p>
+                    There are other troubles that I found myself in, but I either hid them, or overcame them. If I had to publish the game, I could improve it a lot, knowing what I know now, but I think it's enough for a demo.
+                </p>
 
-            <p class="smallpp">
-                Eventually, I had to serve it from my GitHub Pro Pages site, because my 30 days free host from Azure expired.
-            </p>
+                <p class="smallpp">
+                    Eventually, I had to serve it from my GitHub Pro Pages site, because my 30 days free host from Azure expired.
+                </p>
 
             </div>
         </main>
