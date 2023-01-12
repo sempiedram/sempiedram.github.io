@@ -26,15 +26,10 @@ main {
     width: auto;
 }
 
-.smallpp {
-    font-size: 12pt;
-}
-
-
 .myinfo {
     color: #462f1e;
     font-size: 1.3rem;
-    font-family: "Exo", Geneva, Tahoma, sans-serif;
+    font-family: "Exo", sans-serif;
     text-align: center;
     
     background-color: rgb(217, 229, 250);
@@ -55,7 +50,7 @@ main {
     color: rgb(154, 40, 40);
     font-size: 1rem;
     font-weight: 400;
-    font-family: "Exo", Geneva, Tahoma, sans-serif;
+    font-family: "Exo", sans-serif;
     text-align: center;
     
     background-color: rgb(255, 248, 248);
@@ -75,7 +70,7 @@ main {
     color: #462f1e;
     font-size: 1.3rem;
     font-weight: 400;
-    font-family: "Exo", Geneva, Tahoma, sans-serif;
+    font-family: "Exo", sans-serif;
     text-align: center;
     
     max-width: 800px;
