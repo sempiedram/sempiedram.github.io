@@ -693,7 +693,9 @@ class GameDemo {
         
         this.growReels();
         
-        onloadCallback();
+        setTimeout(() => {
+            onloadCallback();
+        }, 600);
     }
     
     /**
@@ -1175,7 +1177,9 @@ class GameDemo {
         console.log(`Relayout: ${canvasWidth}x${canvasHeight}`);
         
         // TODO: Replace this quick fix to fit the win text with canvas size:
-        this.winAmountText.style.fontSize = (canvasWidth * .7) / 7;
+        if(this.winAmountText != undefined) {
+            this.winAmountText.style.fontSize = (canvasWidth * .7) / 7;
+        }
         
         // Resize and position playArea:
         let playAreaDimensions = maxAreaDimensions(this.playAreaRatio, canvasWidth, canvasHeight);
@@ -1231,7 +1235,10 @@ class GameDemo {
             // Landscape case
             
             // Update text size:
-            this.textStyle.fontSize = this.app.view.width/48;
+            console.log(this.textStyle);
+            if(this.textStyle != undefined) {
+                this.textStyle.fontSize = this.app.view.width/48; 
+            }
         
             // Scaling of UI components:
             scaleToSpecificHeight(this.spinButton, units * 25, this.spinButton.texture.height);
@@ -1278,7 +1285,10 @@ class GameDemo {
             // Portrait case
             
             // Update text size:
-            this.textStyle.fontSize = this.app.view.width/17;
+            console.log(this.textStyle);
+            if(this.textStyle != undefined) {
+                this.textStyle.fontSize = this.app.view.width/17;
+            }
         
             // Scaling of UI components:
             scaleToSpecificHeight(this.spinButton, units * 30, this.spinButton.texture.height);

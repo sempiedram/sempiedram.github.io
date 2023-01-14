@@ -60,8 +60,8 @@ async function game_init() {
     
     function doCanvasResize() {
         if(!document.fullscreenElement) {
-            let windowWidth = window.innerWidth - 100;
-            let windowHeight = window.innerHeight - 100;
+            let windowWidth = window.innerWidth - 150;
+            let windowHeight = window.innerHeight - 150;
             
             let windowRatio = windowWidth/windowHeight;
             
@@ -72,7 +72,6 @@ async function game_init() {
             game.resizeTo(newGameArea.width, newGameArea.height);
         }
     }
-
     
     game.loadAll(doCanvasResize);
     window.onresize = doCanvasResize;
