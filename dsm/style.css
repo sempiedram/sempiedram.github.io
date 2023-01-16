@@ -87,3 +87,22 @@ main {
     margin-top: 15pt;
     margin-bottom: 20pt;
 }
+
+@media (max-width: 600px) {
+	.warning {
+		width: 100%;
+		border-radius: 0px;
+	}
+	.myinfo {
+		width: 100%;
+		border-radius: 0px;
+	}
+	.storytime {
+		width: 100%;
+		border-radius: 0px;
+        font-size: 1rem;
+        padding-left: 2rem;
+        padding-right: 2rem;
+	}
+}
+
