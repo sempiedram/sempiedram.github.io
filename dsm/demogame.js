@@ -1235,7 +1235,6 @@ class GameDemo {
             // Landscape case
             
             // Update text size:
-            console.log(this.textStyle);
             if(this.textStyle != undefined) {
                 this.textStyle.fontSize = this.app.view.width/48; 
             }
@@ -1285,7 +1284,6 @@ class GameDemo {
             // Portrait case
             
             // Update text size:
-            console.log(this.textStyle);
             if(this.textStyle != undefined) {
                 this.textStyle.fontSize = this.app.view.width/17;
             }
