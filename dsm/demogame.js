@@ -335,7 +335,7 @@ class GameDemo {
         this.app = new PIXI.Application({
             width: initialWidth,
             height: initialHeight,
-            backgroundColor: 0xa9d5e4
+            backgroundColor: 0x572e1d
         });
 
         let playAreaDimensions = maxAreaDimensions(playAreaRatio, initialWidth, initialHeight);
@@ -429,52 +429,52 @@ class GameDemo {
          */
         this.symbols = [
             {
-                name: "astronaut",
+                name: "cow",
                 value: 1,
                 weight: 1
             },
             {
-                name: "bear",
+                name: "elephant",
                 value: 1,
                 weight: 1
             },
             {
-                name: "doll",
+                name: "frog",
                 value: .5,
                 weight: 1
             },
             {
-                name: "girl",
+                name: "hatching",
                 value: 2,
                 weight: 1
             },
             {
-                name: "guy",
+                name: "honeybee",
                 value: 2,
                 weight: 1
             },
             {
-                name: "moonDog",
+                name: "ladybug",
                 value: 10,
                 weight: 1
             },
             {
-                name: "moonFlag",
+                name: "octupus",
                 value: 3,
                 weight: 1
             },
             {
-                name: "rocket",
+                name: "pig",
                 value: 3,
                 weight: 1
             },
             {
-                name: "stbasilcathedral",
+                name: "snake",
                 value: 3,
                 weight: 1
             },
             {
-                name: "vodka",
+                name: "turtle",
                 value: 3,
                 weight: 1
             },
@@ -503,8 +503,8 @@ class GameDemo {
         // Load all images using PIXI.Loader.shared.add:
         for(let symbol of this.symbols) {
             PIXI.Loader.shared.add(symbol.name, this.assetsFolder + "./images/symbols/" + symbol.name + ".png");
-            PIXI.Loader.shared.add(symbol.name + "_anim", this.assetsFolder + "./images/symbols/" + symbol.name + "_anim.png");
-            PIXI.Loader.shared.add(symbol.name + "_blur", this.assetsFolder + "./images/symbols/" + symbol.name + "_blur.png");
+            /*PIXI.Loader.shared.add(symbol.name + "_anim", this.assetsFolder + "./images/symbols/" + symbol.name + "_anim.png");
+            PIXI.Loader.shared.add(symbol.name + "_blur", this.assetsFolder + "./images/symbols/" + symbol.name + "_blur.png");*/
         }
 
         let imagesToLoad = {
@@ -590,8 +590,8 @@ class GameDemo {
         
         for(let symbol of this.symbols) {
             this.symbolTextures[symbol.name] = resources[symbol.name].texture;
-            this.symbolTexturesBlur[symbol.name] = resources[symbol.name + "_blur"].texture;
-            this.symbolAnimations[symbol.name] = await animationFromLoadedTexture(resources[symbol.name + "_anim"].texture, symbol.name, 20, 180, 180, 0, 0, 180, 180, 20, .3);
+            /*this.symbolTexturesBlur[symbol.name] = resources[symbol.name + "_blur"].texture;
+            this.symbolAnimations[symbol.name] = await animationFromLoadedTexture(resources[symbol.name + "_anim"].texture, symbol.name, 20, 180, 180, 0, 0, 180, 180, 20, .3);*/
         }
         
         for(let reelConfiguration of this.reelConfigurations) {
@@ -756,7 +756,7 @@ class GameDemo {
         }
         
         // Add more animated symbols if needed:
-        while(this.animatedSymbols.length < this.reelCount) {
+        /*while(this.animatedSymbols.length < this.reelCount) {
             let animatedSymbol = new PIXI.AnimatedSprite(this.symbolAnimations[this.symbols[0].name]);
             animatedSymbol.animationSpeed = 0.3; // TODO: Make this configurable somewhere else.
             animatedSymbol.visible = false;
@@ -764,7 +764,7 @@ class GameDemo {
             this.animatedSymbols.push(animatedSymbol);
             
             this.reelsContainer.addChild(animatedSymbol);
-        }
+        }*/
         this.allWinLines = generateWinLines(this.reelCount, this.rowCount);
         
         // Call relayout to reposition the reels with respect to the play area:
@@ -1376,9 +1376,9 @@ class GameDemo {
             reel.container.y = -reelWidth * this.paddingSymbols; // Negative offset to hide the upper padding symbols
             
             // Set up the animated symbols:
-            scaleToSpecificWidth(this.animatedSymbols[reelIndex], reelWidth);
+            /*scaleToSpecificWidth(this.animatedSymbols[reelIndex], reelWidth);
             this.animatedSymbols[reelIndex].x = (reelWidth + gapBetweenReels) * reelIndex;
-            this.animatedSymbols[reelIndex].y = 0;
+            this.animatedSymbols[reelIndex].y = 0;*/
         }
         
         
