@@ -157,7 +157,9 @@ body {
 	padding: 13px 60px;
 	border: 1px solid rgba(255, 255, 255, 0.455);
 	border-radius: 20px;
-	backdrop-filter: blur(20px);
+
+	backdrop-filter: blur(15px);
+	-webkit-backdrop-filter: blur(15px);
 	
 	display: flex;
 	align-items: center;
