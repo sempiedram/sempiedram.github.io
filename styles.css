@@ -198,6 +198,18 @@ body {
 	background: #006affe5;
 }
 
+.blob-hero-card .demo-btn {
+	background-color: rgb(44, 162, 240);
+	color: rgb(211, 193, 23);
+	border: solid 1px black;
+}
+
+.blob-hero-card .demo-btn:hover {
+	background-color: rgb(20, 83, 126);
+	color: white;
+	border: solid 1px black;
+}
+
 
 @keyframes blob-move {
 	0% {
