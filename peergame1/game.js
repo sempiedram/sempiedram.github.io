@@ -1,6 +1,23 @@
 
 let peerIDBase = "_testgame11235813";
 
+function logEvent(event) {
+    let messageElement = document.createElement("p");
+    messageElement.style.color = "white";
+
+    // Make the message have rounded corners:
+    messageElement.style.borderRadius = "5px";
+    messageElement.style.padding = "5px";
+    messageElement.style.margin = "5px";
+    messageElement.style.border = "1px solid white";
+    messageElement.style.backgroundColor = "rgba(0, 0, 0, 0.5)";
+
+    messageElement.innerText = event;
+
+    let gameLog = document.getElementById("gameLog");
+    gameLog.appendChild(messageElement);
+}
+
 window.onload = function () {
     let canvas = document.getElementById("gameCanvas");
 
@@ -38,27 +55,25 @@ window.onload = function () {
         myPeerId = myPeerIDInput.value + peerIDBase;
         peerId = peerIDInput.value + peerIDBase;
 
-        console.log("myPeerId: " + myPeerId);
-        console.log("peerId: " + peerId);
-        console.log(peerIDInput.value + peerIDBase);
+        logEvent("myPeerId: " + myPeerId);
     
         peer = new Peer(myPeerId);
 
         peer.on("connection", (connection) => {
             connection.on("data", (data) => {
-                console.log("Received: ", data);
+                logEvent("Received: ", data);
             });
         });
 
         peer.on("error", (err) => {
-            console.log(err);
+            logEvent(err);
         });
     };
 
     connectPeerButton.onclick = () => {
         let connection = peer.connect(peerId);
         connection.on("open", function (id) {
-            console.log("My peer ID is: " + id);
+            logEvent("My peer ID is: " + id);
 
             connection.send("Hello from " + myPeerId);
         });
