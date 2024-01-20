@@ -42,7 +42,7 @@ window.onload = function () {
         console.log("peerId: " + peerId);
         console.log(peerIDInput.value + peerIDBase);
     
-        peer = new Peer(peerId);
+        peer = new Peer(myPeerId);
 
         peer.on("connection", (connection) => {
             connection.on("data", (data) => {
