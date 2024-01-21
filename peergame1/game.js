@@ -369,12 +369,21 @@ window.onload = function () {
             canvas.onmousemove = (m) => {
                 mouse.x = m.offsetX;
                 mouse.y = m.offsetY;
+
+                // for mobile devices:
+                if(m.touches) {
+                    mouse.x = m.touches[0].clientX;
+                    mouse.y = m.touches[0].clientY;
+                }
             };
 
             canvas.onmousedown = (e) => {
                 mouse.pressed = true;
                 e.stopPropagation();
                 e.preventDefault();
+
+                mouse.x = e.offsetX;
+                mouse.y = e.offsetY;
 
                 switch(currentScreen) {
                     case SPLASH_SCREEN:
