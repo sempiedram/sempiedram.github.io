@@ -6,30 +6,9 @@ let myPeerId = "";
 
 let mouse = {x: 0, y: 0};
 
-
-function promptForMyPeerId() {
-    let myPeerId = prompt("Enter your peer ID");
-    if (myPeerId === null) {
-        alert("You must enter a peer ID");
-        myPeerId = promptForMyPeerId();
-    }
-
-    // Ask the player to confirm that the peer ID is correct:
-    let confirmed = confirm("Your peer ID is: " + myPeerId + "\nIs this correct?");
-    if (!confirmed) {
-        myPeerId = promptForMyPeerId();
-    }
-
-    return myPeerId;
-}
-
-function getPeerId() {
-    if (myPeerId === "") {
-        myPeerId = promptForMyPeerId();
-    }
-
-    return myPeerId + peerIDBase;
-}
+let context;
+let canvas;
+let dpr;
 
 function logEvent(event) {
     let messageElement = document.createElement("p");
@@ -282,14 +261,14 @@ function loadImageResources(images, callback) {
 }
 
 window.onload = function () {
-    let canvas = document.getElementById("gameCanvas");
-    let context = canvas.getContext("2d");
-    let dpr = window.devicePixelRatio || 1;
+    canvas = document.getElementById("gameCanvas");
+    context = canvas.getContext("2d");
+    dpr = window.devicePixelRatio || 1;
 
     function resizeCanvas() {
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
-        context.scale(1/dpr, 1/dpr);
+        context.scale(dpr, dpr);
     }
 
     window.addEventListener("resize", resizeCanvas);
