@@ -287,9 +287,9 @@ window.onload = function () {
     let dpr = window.devicePixelRatio || 1;
 
     function resizeCanvas() {
-        canvas.width = window.innerWidth * dpr;
-        canvas.height = window.innerHeight * dpr;
-        context.scale(dpr, dpr);
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        context.scale(1/dpr, 1/dpr);
     }
 
     window.addEventListener("resize", resizeCanvas);
@@ -427,9 +427,13 @@ window.onload = function () {
                         currentType = "villagerAsset";
                     } else if(currentType === "villagerAsset") {
                         currentType = "knightAsset";
+                    } else if(currentType === "knightAsset") {
+                        currentType = "grassTile";
                     }
                 } else if(e.deltaY < 0) {
-                    if(currentType === "knightAsset") {
+                    if(currentType === "grassTile") {
+                        currentType = "knightAsset";
+                    } else if(currentType === "knightAsset") {
                         currentType = "villagerAsset";
                     } else if(currentType === "villagerAsset") {
                         currentType = "cornerWallTile";
@@ -439,7 +443,7 @@ window.onload = function () {
                         currentType = "grassTile";
                     }
                 }
-            }
+            };
 
             canvas.onmouseup = () => {
                 mouse.pressed = false;
