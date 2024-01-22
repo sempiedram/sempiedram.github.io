@@ -9,15 +9,23 @@ let mouse = {x: 0, y: 0};
 let context;
 let canvas;
 let dpr;
+let uiScale = 1;
+let uiFontSize = 30;
+let uiFontFamily = 'Arial';
+let uiFont = () => uiFontSize + 'px ' + uiFontFamily;
+let uiFontSizeBig = 33;
+let uiFontFamilyBig = 'Arial';
+let uiFontBig = () => uiFontSize + 'px ' + uiFontFamily;
 let canvasIsFullscreen = false;
+
+let debug = false;
 
 let currentLocale = 'en';
 
 let logMessages = [];
 
-let logoPosition = {x: 0, y: 0};
+let logoPosition = {x: 0, y: 0, size: 1};
 let logoPositionState = 'shown';
-let logoPositionLastChangeTime = Date.now();
 
 // Translated strings:
 
@@ -48,26 +56,29 @@ let strings = {
         'helloFrom': 'Hello from: ',
         'changeLanguage': 'Change language',
         'hiButton': 'Hi!',
-        'hello': 'Hello!'
+        'hello': 'Hello!',
+        'empires': 'Empires',
+        'DDD': 'DDD',
+        'toggleDebug': 'Toggle debug'
     },
     'es': {
         'start': 'Empezar',
-        'settings': 'Configuraci\u{f3}n',
-        'back': 'Atr\u{e1}s',
+        'settings': 'Configuración',
+        'back': 'Atrás',
         'connect': 'Conectar',
         'disconnect': 'Desconectar',
         'connecting': 'Conectando...',
         'error': 'Error',
         'warning': 'Advertencia',
         'notice': 'Aviso',
-        'info': 'Informaci\u{f3}n',
+        'info': 'Información',
         'connectToPeer': 'Conectar a par',
         'fullscreen': 'Pantalla completa',
         'enterValue': 'Introducir valor para: ',
         'enteredFullscreen': 'Pantalla completa',
         'exitedFullscreen': 'Salida: Pantalla completa',
         'connectedToPeerServerWithId': 'Conectado a PeerServer con la siguiente ID: ',
-        'connectionReceivedFrom': 'Conexi\u{f3}n recibida de: ',
+        'connectionReceivedFrom': 'Conexión recibida de: ',
         'received': 'Recibido: ',
         'disconnectedFromPeerServer': 'Desconectado de PeerServer',
         'myPeerIdIs': 'Mi ID de par es: ',
@@ -75,8 +86,11 @@ let strings = {
         'peerId': 'ID de par',
         'helloFrom': 'Hola de: ',
         'changeLanguage': 'Cambiar idioma',
-        'hiButton': '\u{a1}Hola!',
-        'hello': '\u{a1}Hola!'
+        'hiButton': '¡Hola!',
+        'hello': '¡Hola!',
+        'empires': 'Imperios',
+        'DDD': 'DDD',
+        'toggleDebug': 'Alternar depuración'
     },
     'jp': {
         'start': 'スタート',
@@ -104,7 +118,10 @@ let strings = {
         'helloFrom': 'こんにちは: ',
         'changeLanguage': '言語を変更',
         'hiButton': 'こんにちは！',
-        'hello': 'こんにちは！'
+        'hello': 'こんにちは！',
+        'empires': 'エンパイア',
+        'DDD': 'DDD',
+        'toggleDebug': 'デバッグを切り替える'
     }
 };
 
@@ -168,16 +185,18 @@ class GUI {
     }
 
     relayout() {
-        let buttonY = 50;
+        let buttonY = 120 * uiScale;
+        let spaceBetweenElements = 20 * uiScale;
+
         for (let button of Object.values(this.buttons)) {
             button.y = buttonY;
-            buttonY += button.height + 20;
+            buttonY += button.height + spaceBetweenElements;
         }
 
-        let textInputY = buttonY + 50;
+        let textInputY = buttonY + spaceBetweenElements * 1.5;
         for (let textInput of Object.values(this.textInputs)) {
             textInput.y = textInputY;
-            textInputY += textInput.height + 20;
+            textInputY += textInput.height + spaceBetweenElements;
         }
     }
 
@@ -200,23 +219,24 @@ class GUI {
 }
 
 function layoutFromTheBottom(gui) {
-    let buttonY = 120;
+    let buttonY = 120 * uiScale;
+    let spaceBetweenElements = 20 * uiScale;
     
     let buttons = Object.values(gui.buttons);
 
     for(let i = buttons.length - 1; i >= 0; i--) {
         let button = buttons[i];
         button.y = canvas.height - buttonY;
-        buttonY += button.height + 20;
+        buttonY += button.height + spaceBetweenElements;
     }
 
-    let textInputY = buttonY + 50;
+    let textInputY = buttonY + spaceBetweenElements * 1.5;
     let textInputs = Object.values(gui.textInputs);
 
     for(let i = textInputs.length - 1; i >= 0; i--) {
         let textInput = textInputs[i];
         textInput.y = canvas.height - textInputY;
-        textInputY += textInput.height + 20;
+        textInputY += textInput.height + spaceBetweenElements;
     }
 }
 
@@ -231,6 +251,9 @@ class GameButton {
         this.text = text;
 
         this.onClick = onClick;
+        
+        this.mode = 'button';
+        this.toggled = false;
     }
 
     draw(context) {
@@ -238,7 +261,7 @@ class GameButton {
         let centerImage = this.images['buttonCenter'];
         let rightImage = this.images['buttonRight'];
         context.fillStyle = 'white';
-        context.font = '30px Arial';
+        context.font = uiFont();
 
         let containsMouse = this.isPointInBounds(mouse.x, mouse.y);
 
@@ -247,32 +270,43 @@ class GameButton {
             centerImage = this.images['buttonCenterHover'];
             rightImage = this.images['buttonRightHover'];
             context.fillStyle = 'rgb(200, 230, 230, 255)';
-            context.font = '32px Arial';
+            context.font = uiFontBig();
 
             if(mouse.pressed) {
                 leftImage = this.images['buttonLeftPressed'];
                 centerImage = this.images['buttonCenterPressed'];
                 rightImage = this.images['buttonRightPressed'];
                 context.fillStyle = 'rgb(150, 200, 200, 255)';
-                context.font = '30px Arial';
+                context.font = uiFont();
             }
         }
 
-        context.drawImage(leftImage, this.x, this.y);
         let textToDisplay = this.text;
-
         if(this.localizedText !== undefined) {
             textToDisplay = localizeString(this.localizedText, currentLocale, this.text);
         }
 
         this.textWidth = context.measureText(textToDisplay).width;
+        this.width = leftImage.width * uiScale + this.textWidth + rightImage.width * uiScale;
+        this.height = leftImage.height * uiScale;
 
-        context.drawImage(centerImage, this.x + leftImage.width, this.y, this.textWidth + 3, centerImage.height);
-        context.drawImage(rightImage, this.x + leftImage.width + this.textWidth, this.y);
+        context.drawImage(centerImage, this.x + leftImage.width * uiScale - 1, this.y, this.textWidth + 3, centerImage.height * uiScale);
+        context.drawImage(leftImage, this.x, this.y, leftImage.width * uiScale, leftImage.height * uiScale);
+        context.drawImage(rightImage, this.x + leftImage.width * uiScale + this.textWidth, this.y, rightImage.width * uiScale, rightImage.height * uiScale);
 
-        this.width = leftImage.width + this.textWidth + rightImage.width;
-        this.height = leftImage.height;
-        context.fillText(textToDisplay, this.x + leftImage.width * 0.91, this.y + 28);
+        context.fillText(textToDisplay, this.x + leftImage.width * 0.91 * uiScale, this.y + 28 * uiScale);
+
+        if(this.mode === 'toggle') {
+            let toggleImage = this.toggled ? this.images['toggleOn'] : this.images['toggleOff'];
+            context.drawImage(toggleImage, this.x + leftImage.width * uiScale + this.textWidth - 10 * uiScale, this.y + this.height * 0.2, toggleImage.width * uiScale * 0.5, toggleImage.height * uiScale * 0.5);
+        }
+
+        // Draw debug outline:
+        if(debug) {
+            context.strokeStyle = 'red';
+            context.lineWidth = 1;
+            context.strokeRect(this.x, this.y, this.width, this.height);
+        }
     }
 
     isPointInBounds(x, y) {
@@ -289,15 +323,15 @@ class GameButton {
             return false;
         }
 
-        if(leftMask.context.getImageData(x - this.x, y - this.y, 1, 1).data[3] > 0) {
+        if(leftMask.context.getImageData((x - this.x) / uiScale, (y - this.y) / uiScale, 1, 1).data[3] > 0) {
             return true;
         }
 
-        if((x > this.x + leftMask.width) && (x < this.x + leftMask.width + this.textWidth) && centerMask.context.getImageData(3, y - this.y, 1, 1).data[3] > 0) {
+        if((x > this.x + leftMask.width * uiScale) && (x < this.x + leftMask.width * uiScale + this.textWidth) && centerMask.context.getImageData(3, (y - this.y) / uiScale, 1, 1).data[3] > 0) {
             return true;
         }
 
-        if((x > this.x + leftMask.width + this.textWidth) && rightMask.context.getImageData(x - this.x - leftMask.width - this.textWidth, y - this.y, 1, 1).data[3] > 0) {
+        if((x > this.x + leftMask.width * uiScale + this.textWidth) && rightMask.context.getImageData((x - this.x - leftMask.width * uiScale - this.textWidth) / uiScale, (y - this.y) / uiScale, 1, 1).data[3] > 0) {
             return true;
         }
 
@@ -333,51 +367,59 @@ class TextInput {
         let mouseInside = this.isPointInBounds(mouse.x, mouse.y);
 
         context.fillStyle = 'black';
-        context.font = '30px Arial';
+        context.font = uiFont();
 
         if(mouseInside) {
             context.fillStyle = 'rgb(150, 150, 150, 255)';
         }
 
-        context.drawImage(leftImage, this.x, this.y);
+        context.drawImage(leftImage, this.x, this.y, leftImage.width * uiScale, leftImage.height * uiScale);
         this.textWidth = context.measureText(this.textToDisplay()).width;
+        this.width = leftImage.width * uiScale + this.textWidth + rightImage.width * uiScale;
+        this.height = leftImage.height * uiScale;
 
-        context.drawImage(centerImage, this.x + leftImage.width, this.y, this.textWidth + 3, centerImage.height);
-        context.drawImage(rightImage, this.x + leftImage.width + this.textWidth, this.y);
+        context.drawImage(centerImage, this.x + leftImage.width * uiScale, this.y, this.textWidth + 3, centerImage.height * uiScale);
+        context.drawImage(rightImage, this.x + leftImage.width * uiScale + this.textWidth, this.y, rightImage.width * uiScale, rightImage.height * uiScale);
 
-        this.width = leftImage.width + this.textWidth + rightImage.width;
-        this.height = leftImage.height;
-        context.fillText(this.textToDisplay(), this.x + leftImage.width * 0.91, this.y + 28);
+        this.width = leftImage.width * uiScale + this.textWidth + rightImage.width * uiScale;
+        this.height = leftImage.height * uiScale;
+        context.fillText(this.textToDisplay(), this.x + leftImage.width * 0.91 * uiScale, this.y + 28 * uiScale);
+
+        // Draw debug outline:
+        if(debug) {
+            context.strokeStyle = 'red';
+            context.lineWidth = 1;
+            context.strokeRect(this.x, this.y, this.width, this.height);
+        }
     }
 
     isPointInBounds(x, y) {
         let pointInsideRectBounds = x >= this.x && x <= this.x + this.width && y >= this.y && y <= this.y + this.height;
 
-        return pointInsideRectBounds;
         // Test if the point is inside the mask:
 
         // These are the Image objects that we will be testing against:
-        // let leftMask = this.images['textInputLeftMask'];
-        // let centerMask = this.images['textInputCenterMask'];
-        // let rightMask = this.images['textInputRightMask'];
+        let leftMask = this.images['textInputLeft'];
+        let centerMask = this.images['textInputCenter'];
+        let rightMask = this.images['textInputRight'];
 
-        // if (!pointInsideRectBounds) {
-        //     return false;
-        // }
+        if (!pointInsideRectBounds) {
+            return false;
+        }
 
-        // if(leftMask.context.getImageData(x - this.x, y - this.y, 1, 1).data[3] > 0) {
-        //     return true;
-        // }
+        if(leftMask.context.getImageData((x - this.x) / uiScale, (y - this.y) / uiScale, 1, 1).data[3] > 0) {
+            return true;
+        }
 
-        // if((x > this.x + leftMask.width) && (x < this.x + leftMask.width + this.textWidth) && centerMask.context.getImageData(3, y - this.y, 1, 1).data[3] > 0) {
-        //     return true;
-        // }
+        if((x > this.x + leftMask.width * uiScale) && (x < this.x + leftMask.width * uiScale + this.textWidth) && centerMask.context.getImageData(3, (y - this.y) / uiScale, 1, 1).data[3] > 0) {
+            return true;
+        }
 
-        // if((x > this.x + leftMask.width + this.textWidth) && rightMask.context.getImageData(x - this.x - leftMask.width - this.textWidth, y - this.y, 1, 1).data[3] > 0) {
-        //     return true;
-        // }
+        if((x > this.x + leftMask.width * uiScale + this.textWidth) && rightMask.context.getImageData((x - this.x - leftMask.width * uiScale - this.textWidth) / uiScale, (y - this.y) / uiScale, 1, 1).data[3] > 0) {
+            return true;
+        }
 
-        // return false;
+        return false;
     }
 }
 
@@ -435,6 +477,15 @@ function resizeCanvas() {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
     context.scale(1, 1);
+    uiScale = canvas.width / 1920;
+    if(uiScale < 0.5) {
+        uiScale = 0.5 - (1 - (uiScale/0.5)) * 0.5;
+    }
+    if(uiScale < 0.5) {
+        uiScale = 0.5;
+    }
+    uiFontSize = Math.max(30 * uiScale, 3);
+
     setTimeout(() => {
         dpr = window.devicePixelRatio || 1;
         canvas.style.width = '100%';
@@ -442,14 +493,22 @@ function resizeCanvas() {
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
         context.scale(1, 1);
+        uiScale = canvas.width / 1920;
+        if(uiScale < 0.5) {
+            uiScale = 0.5 - (1 - (uiScale/0.5)) * 0.5;
+        }
+        if(uiScale < 0.5) {
+            uiScale = 0.5;
+        }
+        uiFontSize = Math.max(30 * uiScale, 3);
     }, 300);
 }
 
 function drawLogMessages() {
-    let logMessageHeight = 40;
-    let logMessagePadding = 10;
+    let logMessageHeight = 40 * uiScale;
+    let logMessagePadding = 10 * uiScale;
 
-    context.font = '20px Arial';
+    context.font = (20 * uiScale) + 'px Arial';
     
     for(let i = 0; i < logMessages.length; i++) {
         let logMessage = logMessages[i];
@@ -470,16 +529,16 @@ function drawLogMessages() {
         }
 
         context.beginPath();
-        context.moveTo(logMessageX + 10, logMessageY);
-        context.lineTo(logMessageX + logMessageWidth - 10, logMessageY);
-        context.quadraticCurveTo(logMessageX + logMessageWidth, logMessageY, logMessageX + logMessageWidth, logMessageY + 10);
-        context.lineTo(logMessageX + logMessageWidth, logMessageY + logMessageHeight - 10);
-        context.quadraticCurveTo(logMessageX + logMessageWidth, logMessageY + logMessageHeight, logMessageX + logMessageWidth - 10, logMessageY + logMessageHeight);
-        context.lineTo(logMessageX + 10, logMessageY + logMessageHeight);
-        context.quadraticCurveTo(logMessageX, logMessageY + logMessageHeight, logMessageX, logMessageY + logMessageHeight - 10);
+        context.moveTo(logMessageX + 10 * uiScale, logMessageY);
+        context.lineTo(logMessageX + logMessageWidth - 10 * uiScale, logMessageY);
+        context.quadraticCurveTo(logMessageX + logMessageWidth, logMessageY, logMessageX + logMessageWidth, logMessageY + 10 * uiScale);
+        context.lineTo(logMessageX + logMessageWidth, logMessageY + logMessageHeight - 10 * uiScale);
+        context.quadraticCurveTo(logMessageX + logMessageWidth, logMessageY + logMessageHeight, logMessageX + logMessageWidth - 10 * uiScale, logMessageY + logMessageHeight);
+        context.lineTo(logMessageX + 10 * uiScale, logMessageY + logMessageHeight);
+        context.quadraticCurveTo(logMessageX, logMessageY + logMessageHeight, logMessageX, logMessageY + logMessageHeight - 10 * uiScale);
 
-        context.lineTo(logMessageX, logMessageY + 10);
-        context.quadraticCurveTo(logMessageX, logMessageY, logMessageX + 10, logMessageY);
+        context.lineTo(logMessageX, logMessageY + 10 * uiScale);
+        context.quadraticCurveTo(logMessageX, logMessageY, logMessageX + 10 * uiScale, logMessageY);
         context.closePath();
         context.fill();
 
@@ -507,9 +566,14 @@ window.onload = function () {
     document.addEventListener('fullscreenchange', () => {
         if (document.fullscreenElement) {
             canvasIsFullscreen = true;
-            log
+            try {
+                settingsScreen.gui.buttons['fullscreen'].toggled = true;
+            } catch(e) {}
         } else {
             canvasIsFullscreen = false;
+            try {
+                settingsScreen.gui.buttons['fullscreen'].toggled = false;
+            } catch(e) {}
         }
     });
 
@@ -535,6 +599,8 @@ window.onload = function () {
 
             'mainBackground': 'resources/mainBackground.png',
             'menuTitle': 'resources/menuTitle.png',
+            'menuTitleEs': 'resources/menuTitleEs.png',
+            'menuTitleJp': 'resources/menuTitleJp.png',
 
             'textInputLeft': 'resources/textInputLeft.png',
             'textInputCenter': 'resources/textInputCenter.png',
@@ -545,7 +611,10 @@ window.onload = function () {
             'wallTile': 'resources/wallTile1.png',
 
             'villagerAsset': 'resources/villagerAsset1.png',
-            'knightAsset': 'resources/knightAsset1.png'
+            'knightAsset': 'resources/knightAsset1.png',
+
+            'toggleOn': 'resources/toggleOn.png',
+            'toggleOff': 'resources/toggleOff.png',
         },
         (images) => {
             renderImageInItsOwnContext(images, 'buttonLeftMask');
@@ -554,6 +623,19 @@ window.onload = function () {
             renderImageInItsOwnContext(images, 'textInputLeft');
             renderImageInItsOwnContext(images, 'textInputCenter');
             renderImageInItsOwnContext(images, 'textInputRight');
+
+            let logoImage = () => {
+                if(currentLocale === 'es') {
+                    return images['menuTitleEs'];
+                } else if(currentLocale === 'jp') {
+                    return images['menuTitleJp'];
+                }
+                return images['menuTitle'];
+            };
+
+            function drawLogoImage() {
+                context.drawImage(logoImage(), logoPosition.x, logoPosition.y, logoImage().width * logoPosition.size, logoImage().height * logoPosition.size);
+            }
 
 
             const SPLASH_SCREEN = 0;
@@ -566,15 +648,15 @@ window.onload = function () {
             
             let mainMenuScreen = {};
             mainMenuScreen.gui = new GUI(images);
-            mainMenuScreen.gui.addButton('start', 50, canvas.height - 400, localizeString('start', currentLocale, 'Start'), () => {
+            mainMenuScreen.gui.addButton('start', 50, canvas.height - 400, localizeString('connect', currentLocale, 'Connect'), () => {
                 currentScreen = CONNECTION_SCREEN;
             });
-            mainMenuScreen.gui.buttons['start'].localizedText = 'start';
+            mainMenuScreen.gui.buttons['start'].localizedText = 'connect';
 
-            mainMenuScreen.gui.addButton('showMessage', 50, canvas.height - 300, localizeString('hiButton', currentLocale, 'Hi!'), () => {
-                logMessage(localizeString('hello', currentLocale, 'Hello!'), 6000, 'warning');
-            });
-            mainMenuScreen.gui.buttons['showMessage'].localizedText = 'hiButton';
+            // mainMenuScreen.gui.addButton('showMessage', 50, canvas.height - 300, localizeString('hiButton', currentLocale, 'Hi!'), () => {
+            //     logMessage(localizeString('hello', currentLocale, 'Hello!'), 6000, 'warning');
+            // });
+            // mainMenuScreen.gui.buttons['showMessage'].localizedText = 'hiButton';
 
             mainMenuScreen.gui.addButton('settings', 50, canvas.height - 200, localizeString('settings', currentLocale, 'Settings'), () => {
                 currentScreen = SETTINGS_SCREEN;
@@ -589,27 +671,23 @@ window.onload = function () {
                 let connectButton = connectionMenuScreen.gui.buttons['connect'];
                 let connectToPeerButton = connectionMenuScreen.gui.buttons['connectToPeer'];
                 let backButton = connectionMenuScreen.gui.buttons['back'];
-                let fullscreenButton = connectionMenuScreen.gui.buttons['fullscreen'];
                 let myPeerIdTextInput = connectionMenuScreen.gui.textInputs['myPeerId'];
                 let peerIdTextInput = connectionMenuScreen.gui.textInputs['peerId'];
 
-                myPeerIdTextInput.y = canvas.height - 400;
-                myPeerIdTextInput.x = 50;
+                myPeerIdTextInput.y = canvas.height - 400 * uiScale;
+                myPeerIdTextInput.x = 50 * uiScale;
 
-                connectButton.y = canvas.height - 400;
-                connectButton.x = 50 + myPeerIdTextInput.width + 20;
+                connectButton.y = canvas.height - 400 * uiScale;
+                connectButton.x = 50 * uiScale + myPeerIdTextInput.width + 20 * uiScale;
 
-                peerIdTextInput.y = canvas.height - 300;
-                peerIdTextInput.x = 50;
+                peerIdTextInput.y = canvas.height - 300 * uiScale;
+                peerIdTextInput.x = 50 * uiScale;
 
-                connectToPeerButton.y = canvas.height - 300;
-                connectToPeerButton.x = 50 + peerIdTextInput.width + 20;
+                connectToPeerButton.y = canvas.height - 300 * uiScale;
+                connectToPeerButton.x = 50 * uiScale + peerIdTextInput.width + 20 * uiScale;
 
-                fullscreenButton.y = canvas.height - 200;
-                fullscreenButton.x = 50;
-
-                backButton.y = canvas.height - 100;
-                backButton.x = 50;
+                backButton.y = canvas.height - 100 * uiScale;
+                backButton.x = 50 * uiScale;
             };
 
             connectionMenuScreen.gui.addTextInput('myPeerId', 50, canvas.height - 400, localizeString('myPeerId', currentLocale, 'My peer ID'));
@@ -664,6 +742,7 @@ window.onload = function () {
                             break;
                         case 'invalid-id':
                             logMessage(localizeString('peerInvalidId', currentLocale, 'Invalid Peer ID'), 5000, 'error');
+                            connectButtonDisconnectAction();
                             break;
                         case 'invalid-key':
                             logMessage(localizeString('peerInvalidKey', currentLocale, 'Invalid PeerServer key'), 5000, 'error');
@@ -704,7 +783,7 @@ window.onload = function () {
                             connectButtonDisconnectAction();
                             break;
                     }
-                    
+
                     logMessage(localizeString('error', currentLocale, 'Error') + ': ' + err, 5000, 'error');
                 });
 
@@ -738,15 +817,6 @@ window.onload = function () {
             });
             connectionMenuScreen.gui.buttons['connectToPeer'].localizedText = 'connectToPeer';
 
-            connectionMenuScreen.gui.addButton('fullscreen', 50, canvas.height - 100, localizeString('fullscreen', currentLocale, 'Fullscreen'), () => {
-                if(canvasIsFullscreen) {
-                    document.exitFullscreen();
-                } else {
-                    goFullscreen();
-                }
-            });
-            connectionMenuScreen.gui.buttons['fullscreen'].localizedText = 'fullscreen';
-
             let settingsScreen = {}
             settingsScreen.gui = new GUI(images);
             settingsScreen.gui.relayout = () => layoutFromTheBottom(settingsScreen.gui);
@@ -761,6 +831,21 @@ window.onload = function () {
                 currentLocale = listOfLocaleOptions[currentLocaleIndex];
             });
             settingsScreen.gui.buttons['changeLocale'].localizedText = 'changeLocale';
+
+            settingsScreen.gui.addButton('fullscreen', 50, canvas.height - 300, localizeString('fullscreen', currentLocale, 'Fullscreen'), () => {
+                if(canvasIsFullscreen) {
+                    document.exitFullscreen();
+                } else {
+                    goFullscreen();
+                }
+            });
+            settingsScreen.gui.buttons['fullscreen'].localizedText = 'fullscreen';
+            settingsScreen.gui.buttons['fullscreen'].mode = 'toggle';
+
+            settingsScreen.gui.addButton('toggleDebug', 50, canvas.height - 400, localizeString('toggleDebug', currentLocale, 'Toggle debug'), () => {
+                debug = !debug;
+            });
+            settingsScreen.gui.buttons['toggleDebug'].localizedText = 'toggleDebug';
 
             settingsScreen.gui.addButton('back', 50, canvas.height - 200, localizeString('back', currentLocale, 'Back'), () => {
                 currentScreen = MENU_SCREEN;
@@ -868,13 +953,24 @@ window.onload = function () {
                 context.textBaseline = 'top';
 
                 // Update logo position:
-                let progress = Math.min(1, (Date.now() - logoPositionLastChangeTime)/1000);
                 if(logoPositionState === 'shown') {
-                    logoPosition.x = 30;
-                    logoPosition.y = -500 + (520 * progress);
+                    let targetX = 20;
+                    let targetY = 20;
+                    let targetSize = Math.min((canvas.width/logoImage().width) * 0.9, Math.max(0.6 * uiScale, 0.6));
+                    console.log(logoImage.width, targetSize);
+
+                    logoPosition.x = targetX - (targetX - logoPosition.x) * 0.97;
+                    logoPosition.y = targetY - (targetY - logoPosition.y) * 0.97;
+                    logoPosition.size = targetSize - (targetSize - logoPosition.size) * 0.97;
                 } else {
-                    logoPosition.x = 30;
-                    logoPosition.y = -500 + (520 * (1 - progress));
+                    let targetX = 10;
+                    let targetY = 10;
+                    let targetSize = Math.min((canvas.width/logoImage().width) * 0.5, Math.max(0.4 * uiScale, 0.4));
+                    console.log(logoImage.width, targetSize);
+
+                    logoPosition.x = targetX - (targetX - logoPosition.x) * 0.95;
+                    logoPosition.y = targetY - (targetY - logoPosition.y) * 0.95;
+                    logoPosition.size = targetSize - (targetSize - logoPosition.size) * 0.97;
                 }
 
                 switch(currentScreen) {
@@ -898,7 +994,6 @@ window.onload = function () {
                     case MENU_SCREEN:
                         if(logoPositionState != 'shown') {
                             logoPositionState = 'shown';
-                            logoPositionLastChangeTime = Date.now();
                         }
                         context.fillStyle = 'rgb(0, 0, 0, 255)';
                         context.fillRect(0, 0, canvas.width, canvas.height);
@@ -912,17 +1007,14 @@ window.onload = function () {
                             context.drawImage(images['mainBackground'], 0, canvas.height/2 - (canvas.width*images['mainBackground'].height/images['mainBackground'].width) / 2, canvas.width, canvas.width*images['mainBackground'].height/images['mainBackground'].width);
                         }
 
-                        // Draw the menu title image centered at the top of the screen:
-                        //context.drawImage(images['menuTitle'], canvas.width - images['menuTitle'].width * 0.6 - 30, 0, images['menuTitle'].width * 0.6, images['menuTitle'].height * 0.6);
-                        context.drawImage(images['menuTitle'], logoPosition.x, logoPosition.y, images['menuTitle'].width * 0.6, images['menuTitle'].height * 0.6);
+                        drawLogoImage();
                         
                         mainMenuScreen.gui.relayout();
                         mainMenuScreen.gui.draw(context);
                         break;
                     case CONNECTION_SCREEN:
-                        if(logoPositionState == 'shown') {
+                        if(logoPositionState != 'hidden') {
                             logoPositionState = 'hidden';
-                            logoPositionLastChangeTime = Date.now();
                         }
 
                         context.fillStyle = 'rgb(0, 0, 0, 255)';
@@ -937,18 +1029,15 @@ window.onload = function () {
                             context.drawImage(images['mainBackground'], 0, canvas.height/2 - (canvas.width*images['mainBackground'].height/images['mainBackground'].width) / 2, canvas.width, canvas.width*images['mainBackground'].height/images['mainBackground'].width);
                         }
 
-                        // Draw the menu title image centered at the top of the screen:
-                        //context.drawImage(images['menuTitle'], canvas.width - images['menuTitle'].width * 0.6 - 30, 0, images['menuTitle'].width * 0.6, images['menuTitle'].height * 0.6);
-                        context.drawImage(images['menuTitle'], logoPosition.x, logoPosition.y, images['menuTitle'].width * 0.6, images['menuTitle'].height * 0.6);
+                        drawLogoImage();
                         
                         connectionMenuScreen.gui.relayout();
                         connectionMenuScreen.gui.draw(context);
 
                         break;
                     case GAME_SCREEN:
-                        if(logoPositionState == 'shown') {
+                        if(logoPositionState != 'hidden') {
                             logoPositionState = 'hidden';
-                            logoPositionLastChangeTime = Date.now();
                         }
 
                         // context.fillStyle = 'rgb(' + (((Math.sin(Date.now()/1000*5) + 1)/2)*50+50) + ', 0, 255)';
@@ -992,9 +1081,8 @@ window.onload = function () {
                         context.stroke();
                         break;
                     case SETTINGS_SCREEN:
-                        if(logoPositionState == 'shown') {
+                        if(logoPositionState != 'hidden') {
                             logoPositionState = 'hidden';
-                            logoPositionLastChangeTime = Date.now();
                         }
 
                         context.fillStyle = 'rgb(0, 0, 0, 255)';
@@ -1009,10 +1097,9 @@ window.onload = function () {
                             context.drawImage(images['mainBackground'], 0, canvas.height/2 - (canvas.width*images['mainBackground'].height/images['mainBackground'].width) / 2, canvas.width, canvas.width*images['mainBackground'].height/images['mainBackground'].width);
                         }
 
-                        // Draw the menu title image centered at the top of the screen:
-                        //context.drawImage(images['menuTitle'], canvas.width - images['menuTitle'].width * 0.6 - 30, 0, images['menuTitle'].width * 0.6, images['menuTitle'].height * 0.6);
-                        context.drawImage(images['menuTitle'], logoPosition.x, logoPosition.y, images['menuTitle'].width * 0.6, images['menuTitle'].height * 0.6);
+                        drawLogoImage();
                         
+                        settingsScreen.gui.buttons['fullscreen'].toggled = canvasIsFullscreen;
                         settingsScreen.gui.relayout();
                         settingsScreen.gui.draw(context);
 
@@ -1021,9 +1108,9 @@ window.onload = function () {
 
 
 
-                context.fillStyle = 'white';
-                context.font = '30px Arial';
-                context.fillText('FPS: ' + Number(fps).toFixed(2), 20, 20);
+                //context.fillStyle = 'white';
+                //context.font = '30px Arial';
+                //context.fillText('FPS: ' + Number(fps).toFixed(2), 20, 20);
 
                 drawLogMessages();
 
