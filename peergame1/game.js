@@ -957,7 +957,7 @@ window.onload = function () {
                     let targetX = 20;
                     let targetY = 20;
                     let targetSize = Math.min((canvas.width/logoImage().width) * 0.9, Math.max(0.6 * uiScale, 0.6));
-                    console.log(logoImage.width, targetSize);
+                    //console.log(logoImage.width, targetSize);
 
                     logoPosition.x = targetX - (targetX - logoPosition.x) * 0.97;
                     logoPosition.y = targetY - (targetY - logoPosition.y) * 0.97;
@@ -966,7 +966,7 @@ window.onload = function () {
                     let targetX = 10;
                     let targetY = 10;
                     let targetSize = Math.min((canvas.width/logoImage().width) * 0.5, Math.max(0.4 * uiScale, 0.4));
-                    console.log(logoImage.width, targetSize);
+                    //console.log(logoImage.width, targetSize);
 
                     logoPosition.x = targetX - (targetX - logoPosition.x) * 0.95;
                     logoPosition.y = targetY - (targetY - logoPosition.y) * 0.95;
