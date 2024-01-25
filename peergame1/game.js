@@ -673,6 +673,7 @@ window.onload = function () {
                 let backButton = connectionMenuScreen.gui.buttons['back'];
                 let myPeerIdTextInput = connectionMenuScreen.gui.textInputs['myPeerId'];
                 let peerIdTextInput = connectionMenuScreen.gui.textInputs['peerId'];
+                let startGameButton = connectionMenuScreen.gui.buttons['startGame'];
 
                 myPeerIdTextInput.y = canvas.height - 400 * uiScale;
                 myPeerIdTextInput.x = 50 * uiScale;
@@ -688,6 +689,9 @@ window.onload = function () {
 
                 backButton.y = canvas.height - 100 * uiScale;
                 backButton.x = 50 * uiScale;
+
+                startGameButton.y = canvas.height - 100 * uiScale;
+                startGameButton.x = 50 * uiScale + backButton.width + 20 * uiScale;
             };
 
             connectionMenuScreen.gui.addTextInput('myPeerId', 50, canvas.height - 400, localizeString('myPeerId', currentLocale, 'My peer ID'));
@@ -799,8 +803,11 @@ window.onload = function () {
                 }
             });
             connectionMenuScreen.gui.buttons['connect'].localizedText = 'connect';
-
             connectionMenuScreen.gui.buttons['connect'].state = 'connect';
+
+            connectionMenuScreen.gui.addButton('startGame', 50, canvas.height - 200, localizeString('start', currentLocale, 'Start'), () => {
+                currentScreen = GAME_SCREEN;
+            });
 
             connectionMenuScreen.gui.addButton('back', 50, canvas.height - 200, 'Back', () => {
                 currentScreen = MENU_SCREEN;
@@ -853,6 +860,20 @@ window.onload = function () {
             settingsScreen.gui.buttons['back'].localizedText = 'back';
 
 
+            let gameScreen = {};
+            gameScreen.gui = new GUI(images);
+            gameScreen.gui.relayout = () => layoutFromTheBottom(gameScreen.gui);
+
+            gameScreen.gui.addTextInput('message', 50, canvas.height - 100, localizeString('message', currentLocale, 'Message'));
+            gameScreen.gui.textInputs['message'].localizedText = 'message';
+
+            gameScreen.gui.addButton('sendMessage', 50, canvas.height - 200, localizeString('sendMessage', currentLocale, 'Send message'), () => {
+                let message = gameScreen.gui.textInputs['message'].text;
+                
+                for(let connection of Object.values(peer.connections)) {
+                    connection[0].send(message);
+                }
+            });
 
             let map = [];
             let currentType = 'grassTile';
@@ -889,6 +910,8 @@ window.onload = function () {
                         break;
                     case GAME_SCREEN:
                         let mouseButton = e.button;
+
+                        gameScreen.gui.handleMouseClick(mouse.x, mouse.y);
 
                         if(mouseButton === 0) {
                             let tile = {};
@@ -1079,6 +1102,9 @@ window.onload = function () {
                         context.moveTo(0, mouse.y);
                         context.lineTo(canvas.width, mouse.y);
                         context.stroke();
+
+                        gameScreen.gui.relayout();
+                        gameScreen.gui.draw(context);
                         break;
                     case SETTINGS_SCREEN:
                         if(logoPositionState != 'hidden') {
