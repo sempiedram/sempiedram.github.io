@@ -3,6 +3,7 @@ let peerIDBase = '_testgame11235813';
 
 let peer;
 let myPeerId = '';
+let connection = null;
 
 let mouse = {x: 0, y: 0};
 
@@ -59,7 +60,8 @@ let strings = {
         'hello': 'Hello!',
         'empires': 'Empires',
         'DDD': 'DDD',
-        'toggleDebug': 'Toggle debug'
+        'toggleDebug': 'Toggle debug',
+        'sendMessage': 'Send message'
     },
     'es': {
         'start': 'Empezar',
@@ -90,7 +92,8 @@ let strings = {
         'hello': '¡Hola!',
         'empires': 'Imperios',
         'DDD': 'DDD',
-        'toggleDebug': 'Alternar depuración'
+        'toggleDebug': 'Alternar depuración',
+        'sendMessage': 'Enviar mensaje'
     },
     'jp': {
         'start': 'スタート',
@@ -121,7 +124,8 @@ let strings = {
         'hello': 'こんにちは！',
         'empires': 'エンパイア',
         'DDD': 'DDD',
-        'toggleDebug': 'デバッグを切り替える'
+        'toggleDebug': 'デバッグを切り替える',
+        'sendMessage': 'メッセージを送信する'
     }
 };
 
@@ -724,7 +728,8 @@ window.onload = function () {
                 peer.on('connection', (dataConnection) => {
                     logMessage(localizeString('connectionReceivedFrom', currentLocale, 'Connection received from: ') + dataConnection.peer);
 
-                    dataConnection.on('data', (data) => {
+                    connection = dataConnection;
+                    connection.on('data', (data) => {
                         logMessage(localizeString('received', currentLocale, 'Received: ') + typeof(data));
                         // data might not be string, so we need to convert it to string
                         logMessage(localizeString('received', currentLocale, 'Received: ') + data.toString());
@@ -815,13 +820,15 @@ window.onload = function () {
             connectionMenuScreen.gui.buttons['back'].localizedText = 'back';
 
             connectionMenuScreen.gui.addButton('connectToPeer', 50, canvas.height - 100, localizeString('connectToPeer', currentLocale, 'Connect to peer'), () => {
-                let connection = peer.connect(connectionMenuScreen.gui.textInputs['peerId'].text + peerIDBase);
-                connection.on('open', function (id) {
+                let connection1 = peer.connect(connectionMenuScreen.gui.textInputs['peerId'].text + peerIDBase, {reliable: true});
+                connection1.on('open', function (id) {
                     logMessage(localizeString('myPeerIdIs', currentLocale, 'My peer ID is: ') + id);
 
-                    connection.send(localizeString('helloFrom', currentLocale, 'Hello from ') + myPeerId);
+                    connection1.send(localizeString('helloFrom', currentLocale, 'Hello from ') + myPeerId);
                 });
+                connection = connection1;
             });
+
             connectionMenuScreen.gui.buttons['connectToPeer'].localizedText = 'connectToPeer';
 
             let settingsScreen = {}
@@ -869,9 +876,15 @@ window.onload = function () {
 
             gameScreen.gui.addButton('sendMessage', 50, canvas.height - 200, localizeString('sendMessage', currentLocale, 'Send message'), () => {
                 let message = gameScreen.gui.textInputs['message'].text;
+
+                console.log(peer.connections);
                 
-                for(let connection of Object.values(peer.connections)) {
-                    connection[0].send(message);
+                //for(let connection of Object.values(peer.connections)) {
+                //    console.log(connection[0].send)
+                //    connection[0].send(message);
+                //}
+                if(connection !== undefined) {
+                    connection.send(message);
                 }
             });
 
