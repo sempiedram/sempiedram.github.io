@@ -7,6 +7,8 @@ let connection = null;
 
 let mouse = {x: 0, y: 0};
 
+let lastFrameTime = 0;
+
 let context;
 let canvas;
 let dpr;
@@ -533,16 +535,16 @@ function drawLogMessages() {
         }
 
         context.beginPath();
-        context.moveTo(logMessageX + 10 * uiScale, logMessageY);
-        context.lineTo(logMessageX + logMessageWidth - 10 * uiScale, logMessageY);
-        context.quadraticCurveTo(logMessageX + logMessageWidth, logMessageY, logMessageX + logMessageWidth, logMessageY + 10 * uiScale);
-        context.lineTo(logMessageX + logMessageWidth, logMessageY + logMessageHeight - 10 * uiScale);
-        context.quadraticCurveTo(logMessageX + logMessageWidth, logMessageY + logMessageHeight, logMessageX + logMessageWidth - 10 * uiScale, logMessageY + logMessageHeight);
-        context.lineTo(logMessageX + 10 * uiScale, logMessageY + logMessageHeight);
-        context.quadraticCurveTo(logMessageX, logMessageY + logMessageHeight, logMessageX, logMessageY + logMessageHeight - 10 * uiScale);
+        context.moveTo(logMessageX + logMessagePadding, logMessageY);
+        context.lineTo(logMessageX + logMessageWidth - logMessagePadding, logMessageY);
+        context.quadraticCurveTo(logMessageX + logMessageWidth, logMessageY, logMessageX + logMessageWidth, logMessageY + logMessagePadding);
+        context.lineTo(logMessageX + logMessageWidth, logMessageY + logMessageHeight - logMessagePadding);
+        context.quadraticCurveTo(logMessageX + logMessageWidth, logMessageY + logMessageHeight, logMessageX + logMessageWidth - logMessagePadding, logMessageY + logMessageHeight);
+        context.lineTo(logMessageX + logMessagePadding, logMessageY + logMessageHeight);
+        context.quadraticCurveTo(logMessageX, logMessageY + logMessageHeight, logMessageX, logMessageY + logMessageHeight - logMessagePadding);
 
-        context.lineTo(logMessageX, logMessageY + 10 * uiScale);
-        context.quadraticCurveTo(logMessageX, logMessageY, logMessageX + 10 * uiScale, logMessageY);
+        context.lineTo(logMessageX, logMessageY + logMessagePadding);
+        context.quadraticCurveTo(logMessageX, logMessageY, logMessageX + logMessagePadding, logMessageY);
         context.closePath();
         context.fill();
 
@@ -827,6 +829,12 @@ window.onload = function () {
                     connection1.send(localizeString('helloFrom', currentLocale, 'Hello from ') + myPeerId);
                 });
                 connection = connection1;
+                connection.on('data', (data) => {
+                    logMessage(localizeString('received', currentLocale, 'Received: ') + typeof(data));
+                    // data might not be string, so we need to convert it to string
+                    logMessage(localizeString('received', currentLocale, 'Received: ') + data.toString());
+                });
+                
             });
 
             connectionMenuScreen.gui.buttons['connectToPeer'].localizedText = 'connectToPeer';
@@ -1162,37 +1170,5 @@ window.onload = function () {
 
     resizeCanvas();
 
-    let lastFrameTime = 0;
-
-
-
-    // connectButton.onclick = () => {
-    //     logMessage('Connecting to PeerServer with the following ID: ' + getPeerId());
-    
-    //     peer = new Peer(getPeerId());
-
-    //     peer.on('connection', (dataConnection) => {
-    //         logMessage('Connection received from: ' + dataConnection.peer);
-
-    //         dataConnection.on('data', (data) => {
-    //             logMessage('Received: ' + typeof(data));
-    //             // data might not be string, so we need to convert it to string
-    //             logMessage('Received: ' + data.toString());
-    //         });
-    //     });
-
-    //     peer.on('error', (err) => {
-    //         logMessage(err);
-    //     });
-    // };
-
-    // connectPeerButton.onclick = () => {
-    //     let connection = peer.connect(peerId);
-    //     connection.on('open', function (id) {
-    //         logMessage('My peer ID is: ' + id);
-
-    //         connection.send('Hello from ' + myPeerId);
-    //     });
-    // };
 
 };
