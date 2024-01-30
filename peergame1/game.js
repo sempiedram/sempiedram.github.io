@@ -631,7 +631,7 @@ class HostGameStateHandler {
     broadcastAction(action) {
         switch(action.type) {
             case 'actionResponse':
-                if(this.currentAction === undefined) {
+                /*if(this.currentAction === undefined) {
                     console.error('Received action response with no current action');
                     break;
                 }
@@ -640,7 +640,7 @@ class HostGameStateHandler {
                     this.currentAction.guestAnswered[action.peerId + peerIDBase] = true;
                 } else {
                     console.error('Received action response with incorrect action ID: ' + action.responseActionId);
-                }
+                }*/
                 break;
             default:    
                 action.receivedTime = Date.now();
@@ -652,7 +652,7 @@ class HostGameStateHandler {
     }
 
     broadcastActions() {
-        if(this.currentAction === undefined) {
+        while(this.actionBroadcastStack.length > 0) {
             let nextAction = this.actionBroadcastStack.shift();
 
             if(nextAction === undefined) {
@@ -660,6 +660,39 @@ class HostGameStateHandler {
             }
             
             if(debug) {
+                console.log(this.actionBroadcastStack);
+                console.log(nextAction);
+                console.log(this.guests);
+            }
+
+            let nextActionSourceGuest = nextAction.peerId;
+
+            // Broadcast the action:
+            for(let guest of Object.values(this.guests)) {
+                if(debug) {
+                    console.log(guest);
+                    console.log(guest.peer);
+                    console.log(nextActionSourceGuest + peerIDBase);
+                }
+
+                if(guest.peer === nextActionSourceGuest + peerIDBase) {
+                    continue;
+                }
+    
+                guest.send(nextAction);
+            }
+        }
+
+
+        /*if(this.currentAction === undefined) {
+            let nextAction = this.actionBroadcastStack.shift();
+
+            if(nextAction === undefined) {
+                return;
+            }
+            
+            if(debug) {
+                console.log(this.actionBroadcastStack);
                 console.log(nextAction);
                 console.log(this.guests);
             }
@@ -681,6 +714,8 @@ class HostGameStateHandler {
     
                 guest.send(nextAction);
             }
+
+            this.currentAction = nextAction;
         } else {
             // Check if every guest answered:
             let allGuestsAnswered = true;
@@ -698,7 +733,7 @@ class HostGameStateHandler {
             if(allGuestsAnswered) {
                 this.currentAction = undefined;
             }
-        }
+        }*/
     }
 
     broadcastMessage(message) {
@@ -724,7 +759,7 @@ class GuestGameStateHandler {
         }
 
         this.gameState.applyAction(action);
-        this.actionResponseStack.push({type: 'actionResponse', actionId: createRandomActionId(), responseActionId: action.actionId, peerId: myPeerId});
+        //this.actionResponseStack.push({type: 'actionResponse', actionId: createRandomActionId(), responseActionId: action.actionId, peerId: myPeerId});
     }
 
     sendResponses() {
@@ -1392,7 +1427,7 @@ window.onload = function () {
                         joinScreenGui.draw(context);
                         break;
                     case GAME_SCREEN:
-                        //gameStateHandler.broadcastPlayerPosition({x: mouse.x, y: mouse.y});
+                        gameStateHandler.broadcastPlayerPosition({x: mouse.x, y: mouse.y});
                         
                         if(hostOrGuest === 'guest') {
                             gameStateHandler.sendResponses();
