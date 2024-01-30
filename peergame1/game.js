@@ -31,7 +31,7 @@ let uiFontFamilyBig = 'Arial';
 let uiFontBig = () => uiFontSize + 'px ' + uiFontFamily;
 let canvasIsFullscreen = false;
 
-let debug = true;
+let debug = false;
 
 let currentLocale = 'en';
 
