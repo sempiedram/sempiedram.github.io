@@ -3,7 +3,17 @@ let peerIDBase = '_testgame11235813';
 
 let peer;
 let myPeerId = '';
-let connection = null;
+
+let hostConnection = undefined;
+let guestConnections = {};
+
+let hostGameStateHandler = undefined;
+let guestGameStateHandler = undefined;
+let gameStateHandler = undefined;
+
+let gameState = undefined;
+
+let hostOrGuest = 'host';
 
 let mouse = {x: 0, y: 0};
 
@@ -21,7 +31,7 @@ let uiFontFamilyBig = 'Arial';
 let uiFontBig = () => uiFontSize + 'px ' + uiFontFamily;
 let canvasIsFullscreen = false;
 
-let debug = false;
+let debug = true;
 
 let currentLocale = 'en';
 
@@ -35,6 +45,7 @@ let logoPositionState = 'shown';
 let strings = {
     'en': {
         'start': 'Start',
+        'play': 'Play',
         'settings': 'Settings',
         'back': 'Back',
         'connect': 'Connect',
@@ -67,6 +78,7 @@ let strings = {
     },
     'es': {
         'start': 'Empezar',
+        'play': 'Jugar',
         'settings': 'Configuración',
         'back': 'Atrás',
         'connect': 'Conectar',
@@ -99,6 +111,7 @@ let strings = {
     },
     'jp': {
         'start': 'スタート',
+        'play': 'プレー',
         'settings': '設定',
         'back': 'バック',
         'connect': '接続',
@@ -172,12 +185,22 @@ class GUI {
         this.textInputs = {};
     }
 
-    addButton(buttonId, x, y, text, onClick) {
-        this.buttons[buttonId] = new GameButton(this.images, x, y, text, onClick);
+    addButton(buttonId, localizedText, defaultText, onClick) {
+        this.buttons[buttonId] = new GameButton(this.images, 0, 0, localizeString(localizedText, currentLocale, defaultText), onClick);
+        this.buttons[buttonId].localizedText = localizedText;
     }
 
-    addTextInput(textInputId, x, y, label) {
-        this.textInputs[textInputId] = new TextInput(this.images, x, y, label);
+    button(buttonId) {
+        return this.buttons[buttonId];
+    }
+
+    addTextInput(textInputId, localizedLabel, defaultLabel) {
+        this.textInputs[textInputId] = new TextInput(this.images, 0, 0, localizeString(localizedLabel, currentLocale, defaultLabel));
+        this.textInputs[textInputId].localizedText = localizedLabel;
+    }
+
+    textInput(textInputId) {
+        return this.textInputs[textInputId];
     }
 
     draw(context) {
@@ -454,7 +477,7 @@ function loadImageResources(images, callback) {
 
     for (let key in images) {
         loadedImages[key] = new Image();
-        //loadedImages[key].crossOrigin = 'anonymous';
+        
         loadedImages[key].onload = () => {
             numLoadedImages++;
             if (numLoadedImages === numImages) {
@@ -563,6 +586,172 @@ function drawLogMessages() {
 }
 
 
+function validPeerId(peerId) {
+    // Valid peer ID's start with a letter, and contain only letters, numbers, and underscores:
+    return /^[a-zA-Z][a-zA-Z0-9_]*$/.test(peerId);
+}
+
+class GameState {
+    constructor() {
+        this.playerPositions = {};
+    }
+
+    applyAction(action) {
+        switch(action.type) {
+            case 'playerPosition':
+                this.playerPositions[action.peerId] = action.position;
+                break;
+            case 'broadcastMessage':
+                logMessage(action.peerId + ': ' + action.message, 6000, 'notice');
+                break;
+            case 'actionResponse':
+                //console.log('Action response: ' + action.actionId);
+                break;
+            default:
+                console.error('Unknown action type: ' + action.type);
+                break;
+        }
+    }
+}
+
+function createRandomActionId() {
+    return Math.floor(Math.random() * 1000000) + '_' + Date.now();
+}
+
+class HostGameStateHandler {
+    constructor(gameState, guests) {
+        this.guests = guests;
+        this.gameState = gameState;
+
+        this.actionBroadcastStack = [];
+
+        this.currentAction = undefined;
+    }
+
+    broadcastAction(action) {
+        switch(action.type) {
+            case 'actionResponse':
+                if(this.currentAction === undefined) {
+                    console.error('Received action response with no current action');
+                    break;
+                }
+
+                if(this.currentAction.actionId === action.responseActionId) {
+                    this.currentAction.guestAnswered[action.peerId + peerIDBase] = true;
+                } else {
+                    console.error('Received action response with incorrect action ID: ' + action.responseActionId);
+                }
+                break;
+            default:    
+                action.receivedTime = Date.now();
+                action.guestAnswered = {};
+                this.actionBroadcastStack.push(action);
+
+                this.gameState.applyAction(action);
+        }
+    }
+
+    broadcastActions() {
+        if(this.currentAction === undefined) {
+            let nextAction = this.actionBroadcastStack.shift();
+
+            if(nextAction === undefined) {
+                return;
+            }
+            
+            if(debug) {
+                console.log(nextAction);
+                console.log(this.guests);
+            }
+
+            let nextActionSourceGuest = nextAction.peerId;
+
+
+            // Broadcast the action:
+            for(let guest of Object.values(this.guests)) {
+                if(debug) {
+                    console.log(guest);
+                    console.log(guest.peer);
+                    console.log(nextActionSourceGuest + peerIDBase);
+                }
+
+                if(guest.peer === nextActionSourceGuest + peerIDBase) {
+                    continue;
+                }
+    
+                guest.send(nextAction);
+            }
+        } else {
+            // Check if every guest answered:
+            let allGuestsAnswered = true;
+            for(let guest of Object.values(this.guests)) {
+                if(guest.peer === this.currentAction.peerId + peerIDBase) {
+                    continue;
+                }
+    
+                if(this.currentAction.guestAnswered[guest.peer] === undefined) {
+                    allGuestsAnswered = false;
+                    break;
+                }
+            }
+    
+            if(allGuestsAnswered) {
+                this.currentAction = undefined;
+            }
+        }
+    }
+
+    broadcastMessage(message) {
+        this.broadcastAction({type: 'broadcastMessage', message: message, peerId: myPeerId, actionId: createRandomActionId()}); 
+    }
+
+    broadcastPlayerPosition(position) {
+        this.broadcastAction({type: 'playerPosition', position: position, peerId: myPeerId, actionId: createRandomActionId()}); 
+    }
+}
+
+class GuestGameStateHandler {
+    constructor(gameState, host) {
+        this.host = host;
+        this.gameState = gameState;
+        this.actionResponseStack = [];
+    }
+
+    processAction(action) {
+        if(debug) {
+            console.log('Guest received action: ' + action.type);
+            console.log(action);
+        }
+
+        this.gameState.applyAction(action);
+        this.actionResponseStack.push({type: 'actionResponse', actionId: createRandomActionId(), responseActionId: action.actionId, peerId: myPeerId});
+    }
+
+    sendResponses() {
+        let nextResponse = this.actionResponseStack.shift();
+
+        if(nextResponse === undefined) {
+            return;
+        }
+
+        this.host.send(nextResponse);
+    }
+
+    broadcastMessage(message) {
+        let messageAction = {type: 'broadcastMessage', message: message, peerId: myPeerId, actionId: createRandomActionId()};
+        this.host.send(messageAction);
+        this.gameState.applyAction(messageAction);
+    }
+
+    broadcastPlayerPosition(position) {
+        let positionAction = {type: 'playerPosition', position: position, peerId: myPeerId, actionId: createRandomActionId()};
+        this.host.send(positionAction);
+        this.gameState.applyAction(positionAction);
+    }
+}
+
+
+
 window.onload = function () {
     canvas = document.getElementById('gameCanvas');
     context = canvas.getContext('2d');
@@ -573,12 +762,12 @@ window.onload = function () {
         if (document.fullscreenElement) {
             canvasIsFullscreen = true;
             try {
-                settingsScreen.gui.buttons['fullscreen'].toggled = true;
+                settingsScreenGui.button('fullscreen').toggled = true;
             } catch(e) {}
         } else {
             canvasIsFullscreen = false;
             try {
-                settingsScreen.gui.buttons['fullscreen'].toggled = false;
+                settingsScreenGui.button('fullscreen').toggled = false;
             } catch(e) {}
         }
     });
@@ -643,68 +832,41 @@ window.onload = function () {
                 context.drawImage(logoImage(), logoPosition.x, logoPosition.y, logoImage().width * logoPosition.size, logoImage().height * logoPosition.size);
             }
 
+            gameState = new GameState();
+
 
             const SPLASH_SCREEN = 0;
             const MENU_SCREEN = 1;
             const CONNECTION_SCREEN = 2;
+            const HOST_SCREEN = 6;
+            const JOIN_SCREEN = 7;
             const GAME_SCREEN = 3;
             const SETTINGS_SCREEN = 4;
 
+
             let currentScreen = SPLASH_SCREEN;
-            
-            let mainMenuScreen = {};
-            mainMenuScreen.gui = new GUI(images);
-            mainMenuScreen.gui.addButton('start', 50, canvas.height - 400, localizeString('connect', currentLocale, 'Connect'), () => {
+
+
+
+            let mainMenuScreenGui = new GUI(images);
+
+            mainMenuScreenGui.addButton('start', 'play', 'Play', () => {
                 currentScreen = CONNECTION_SCREEN;
             });
-            mainMenuScreen.gui.buttons['start'].localizedText = 'connect';
 
-            // mainMenuScreen.gui.addButton('showMessage', 50, canvas.height - 300, localizeString('hiButton', currentLocale, 'Hi!'), () => {
-            //     logMessage(localizeString('hello', currentLocale, 'Hello!'), 6000, 'warning');
-            // });
-            // mainMenuScreen.gui.buttons['showMessage'].localizedText = 'hiButton';
-
-            mainMenuScreen.gui.addButton('settings', 50, canvas.height - 200, localizeString('settings', currentLocale, 'Settings'), () => {
+            mainMenuScreenGui.addButton('settings', 'settings', 'Settings', () => {
                 currentScreen = SETTINGS_SCREEN;
             });
-            mainMenuScreen.gui.buttons['settings'].localizedText = 'settings';
 
-            mainMenuScreen.gui.relayout = () => layoutFromTheBottom(mainMenuScreen.gui);
-            
-            let connectionMenuScreen = {};
-            connectionMenuScreen.gui = new GUI(images);
-            connectionMenuScreen.gui.relayout = () => {
-                let connectButton = connectionMenuScreen.gui.buttons['connect'];
-                let connectToPeerButton = connectionMenuScreen.gui.buttons['connectToPeer'];
-                let backButton = connectionMenuScreen.gui.buttons['back'];
-                let myPeerIdTextInput = connectionMenuScreen.gui.textInputs['myPeerId'];
-                let peerIdTextInput = connectionMenuScreen.gui.textInputs['peerId'];
-                let startGameButton = connectionMenuScreen.gui.buttons['startGame'];
+            mainMenuScreenGui.relayout = () => layoutFromTheBottom(mainMenuScreenGui);
 
-                myPeerIdTextInput.y = canvas.height - 400 * uiScale;
-                myPeerIdTextInput.x = 50 * uiScale;
 
-                connectButton.y = canvas.height - 400 * uiScale;
-                connectButton.x = 50 * uiScale + myPeerIdTextInput.width + 20 * uiScale;
 
-                peerIdTextInput.y = canvas.height - 300 * uiScale;
-                peerIdTextInput.x = 50 * uiScale;
+            let connectionMenuScreenGui = new GUI(images);
+            connectionMenuScreenGui.relayout = () => layoutFromTheBottom(connectionMenuScreenGui);
 
-                connectToPeerButton.y = canvas.height - 300 * uiScale;
-                connectToPeerButton.x = 50 * uiScale + peerIdTextInput.width + 20 * uiScale;
-
-                backButton.y = canvas.height - 100 * uiScale;
-                backButton.x = 50 * uiScale;
-
-                startGameButton.y = canvas.height - 100 * uiScale;
-                startGameButton.x = 50 * uiScale + backButton.width + 20 * uiScale;
-            };
-
-            connectionMenuScreen.gui.addTextInput('myPeerId', 50, canvas.height - 400, localizeString('myPeerId', currentLocale, 'My peer ID'));
-            connectionMenuScreen.gui.textInputs['myPeerId'].localizedText = 'myPeerId';
-
-            connectionMenuScreen.gui.addTextInput('peerId', 50, canvas.height - 300, localizeString('peerId', currentLocale, 'Peer ID'));
-            connectionMenuScreen.gui.textInputs['peerId'].localizedText = 'peerId';
+            connectionMenuScreenGui.addTextInput('myPeerId', 'myPeerId', 'My ID');
+            connectionMenuScreenGui.textInput('myPeerId').localizedText = 'myPeerId';
             
 
             let connectButtonDisconnectAction = () => {
@@ -713,137 +875,249 @@ window.onload = function () {
 
                 logMessage(localizeString('disconnectedFromPeerServer', currentLocale, 'Disconnected from PeerServer'), 5000, 'notice');
 
-                connectionMenuScreen.gui.buttons['connect'].localizedText = 'connect';
-                connectionMenuScreen.gui.buttons['connect'].state = 'connect';
+                connectionMenuScreenGui.button('connect').localizedText = 'connect';
+                connectionMenuScreenGui.button('connect').state = 'connect';
+
+                peer = undefined;
             };
 
             let connectButtonConnectAction = () => {
-                peer = new Peer(connectionMenuScreen.gui.textInputs['myPeerId'].text + peerIDBase);
-                peer.on('open', (id) => {
-                    myPeerId = id;
-                    logMessage(localizeString('connectedToPeerServerWithId', currentLocale, 'Connected to PeerServer with ID: ') + myPeerId, 5000, 'notice');
+                if(peer === undefined) {
+                    myPeerId = connectionMenuScreenGui.textInput('myPeerId').text;
 
-                    connectionMenuScreen.gui.buttons['connect'].localizedText = 'disconnect';
-                    connectionMenuScreen.gui.buttons['connect'].state = 'disconnect';
-                });
-
-                peer.on('connection', (dataConnection) => {
-                    logMessage(localizeString('connectionReceivedFrom', currentLocale, 'Connection received from: ') + dataConnection.peer);
-
-                    connection = dataConnection;
-                    connection.on('data', (data) => {
-                        logMessage(localizeString('received', currentLocale, 'Received: ') + typeof(data));
-                        // data might not be string, so we need to convert it to string
-                        logMessage(localizeString('received', currentLocale, 'Received: ') + data.toString());
-                    });
-                });
-
-                peer.on('error', (err) => {
-                    console.error(err);
-                    console.error(err.type);
-
-                    switch(err.type) {
-                        case 'browser-incompatible':
-                            logMessage(localizeString('peerBrowserIncompatible', currentLocale, 'Browser incompatible'), 5000, 'error');
-                            connectButtonDisconnectAction();
-                            break;
-                        case 'disconnected':
-                            logMessage(localizeString('peerDisconnected', currentLocale, 'Peer connection was already terminated'), 5000, 'error');
-                            connectButtonDisconnectAction();
-                            break;
-                        case 'invalid-id':
-                            logMessage(localizeString('peerInvalidId', currentLocale, 'Invalid Peer ID'), 5000, 'error');
-                            connectButtonDisconnectAction();
-                            break;
-                        case 'invalid-key':
-                            logMessage(localizeString('peerInvalidKey', currentLocale, 'Invalid PeerServer key'), 5000, 'error');
-                            connectButtonDisconnectAction();
-                            break;
-                        case 'network':
-                            logMessage(localizeString('peerNetworkError', currentLocale, 'Peer network error'), 5000, 'error');
-                            connectButtonDisconnectAction();
-                            break;
-                        case 'peer-unavailable':
-                            logMessage(localizeString('peerUnavailable', currentLocale, 'Peer unavailable'), 5000, 'error');
-                            break;
-                        case 'ssl-unavailable':
-                            logMessage(localizeString('peerSslUnavailable', currentLocale, 'SSL unavailable'), 5000, 'error');
-                            break;
-                        case 'server-error':
-                            logMessage(localizeString('peerServerError', currentLocale, 'Server error'), 5000, 'error');
-                            connectButtonDisconnectAction();
-                            break;
-                        case 'socket-error':
-                            logMessage(localizeString('peerSocketError', currentLocale, 'Socket error'), 5000, 'error');
-                            connectButtonDisconnectAction();
-                            break;
-                        case 'socket-closed':
-                            logMessage(localizeString('peerSocketClosed', currentLocale, 'Socket closed'), 5000, 'error');
-                            connectButtonDisconnectAction();
-                            break;
-                        case 'unavailable-id':
-                            logMessage(localizeString('peerUnavailableId', currentLocale, 'Unavailable ID'), 5000, 'error');
-                            connectButtonDisconnectAction();
-                            break;
-                        case 'webrtc':
-                            logMessage(localizeString('peerWebRtcError', currentLocale, 'WebRTC error'), 5000, 'error');
-                            connectButtonDisconnectAction();
-                            break;
-                        default:
-                            logMessage(localizeString('peerUnknownError', currentLocale, 'Unknown error'), 5000, 'error');
-                            connectButtonDisconnectAction();
-                            break;
+                    if(!validPeerId(myPeerId)) {
+                        logMessage(localizeString('invalidPeerId', currentLocale, 'Invalid Peer ID'), 5000, 'error');
+                        return;
                     }
 
-                    logMessage(localizeString('error', currentLocale, 'Error') + ': ' + err, 5000, 'error');
-                });
+                    let tryConnectPeer = new Peer(myPeerId + peerIDBase);
+                    tryConnectPeer.on('open', (id) => {
+                        //myPeerId = id;
+                        logMessage(localizeString('connectedToPeerServerWithId', currentLocale, 'Connected to PeerServer with ID: ') + myPeerId, 5000, 'notice');
 
-                connectionMenuScreen.gui.buttons['connect'].state = 'connecting';
-                connectionMenuScreen.gui.buttons['connect'].localizedText = 'connecting';
+                        connectionMenuScreenGui.button('connect').localizedText = 'disconnect';
+                        connectionMenuScreenGui.button('connect').state = 'disconnect';
+
+                        peer = tryConnectPeer;
+
+                        // Here we accumulate connections from guests:
+                        peer.on('connection', (dataConnection) => {
+                            if(hostOrGuest === 'host') {
+                                logMessage(localizeString('connectionReceivedFrom', currentLocale, 'Connection received from: ') + dataConnection.peer);
+
+                                if(debug) {
+                                    console.log(dataConnection);
+                                }
+
+                                dataConnection.on('data', (data) => {
+                                    gameStateHandler.broadcastAction(data);
+                                });
+
+                                guestConnections[dataConnection.peer] = dataConnection;
+                            } else if (hostOrGuest === 'guest') {
+                                logMessage(localizeString('guestModeShouldntReceiveConnections', currentLocale, 'Guest mode shouldn\'t receive connections'), 5000, 'error');
+
+                                dataConnection.close();
+                            }
+                        });
+                    });
+
+                    tryConnectPeer.on('error', (err) => {
+                        console.error(err);
+                        console.error(err.type);
+
+                        switch(err.type) {
+                            case 'browser-incompatible':
+                                logMessage(localizeString('peerBrowserIncompatible', currentLocale, 'Browser incompatible'), 5000, 'error');
+                                connectButtonDisconnectAction();
+                                break;
+                            case 'disconnected':
+                                logMessage(localizeString('peerDisconnected', currentLocale, 'Peer connection was already terminated'), 5000, 'error');
+                                connectButtonDisconnectAction();
+                                break;
+                            case 'invalid-id':
+                                logMessage(localizeString('peerInvalidId', currentLocale, 'Invalid Peer ID'), 5000, 'error');
+                                connectButtonDisconnectAction();
+                                break;
+                            case 'invalid-key':
+                                logMessage(localizeString('peerInvalidKey', currentLocale, 'Invalid PeerServer key'), 5000, 'error');
+                                connectButtonDisconnectAction();
+                                break;
+                            case 'network':
+                                logMessage(localizeString('peerNetworkError', currentLocale, 'Peer network error'), 5000, 'error');
+                                connectButtonDisconnectAction();
+                                break;
+                            case 'peer-unavailable':
+                                logMessage(localizeString('peerUnavailable', currentLocale, 'Peer unavailable'), 5000, 'error');
+                                break;
+                            case 'ssl-unavailable':
+                                logMessage(localizeString('peerSslUnavailable', currentLocale, 'SSL unavailable'), 5000, 'error');
+                                break;
+                            case 'server-error':
+                                logMessage(localizeString('peerServerError', currentLocale, 'Server error'), 5000, 'error');
+                                connectButtonDisconnectAction();
+                                break;
+                            case 'socket-error':
+                                logMessage(localizeString('peerSocketError', currentLocale, 'Socket error'), 5000, 'error');
+                                connectButtonDisconnectAction();
+                                break;
+                            case 'socket-closed':
+                                logMessage(localizeString('peerSocketClosed', currentLocale, 'Socket closed'), 5000, 'error');
+                                connectButtonDisconnectAction();
+                                break;
+                            case 'unavailable-id':
+                                logMessage(localizeString('peerUnavailableId', currentLocale, 'Unavailable ID'), 5000, 'error');
+                                connectButtonDisconnectAction();
+                                break;
+                            case 'webrtc':
+                                logMessage(localizeString('peerWebRtcError', currentLocale, 'WebRTC error'), 5000, 'error');
+                                connectButtonDisconnectAction();
+                                break;
+                            default:
+                                logMessage(localizeString('peerUnknownError', currentLocale, 'Unknown error'), 5000, 'error');
+                                connectButtonDisconnectAction();
+                                break;
+                        }
+
+                        logMessage(localizeString('error', currentLocale, 'Error') + ': ' + err, 5000, 'error');
+                    });
+
+                    connectionMenuScreenGui.button('connect').state = 'connecting';
+                    connectionMenuScreenGui.button('connect').localizedText = 'connecting';
+                } else {
+                    logMessage(localizeString('alreadyConnectedToPeerServer', currentLocale, 'Already connected to PeerServer'), 5000, 'error');
+                }
             };
 
-            connectionMenuScreen.gui.addButton('connect', 50, canvas.height - 300, localizeString('connect', currentLocale, 'Connect'), () => {
-                if(connectionMenuScreen.gui.buttons['connect'].state === 'connect') {
+            connectionMenuScreenGui.addButton('connect', 'connect', 'Connect', () => {
+                if(connectionMenuScreenGui.button('connect').state === undefined) {
+                    connectionMenuScreenGui.button('connect').state = 'connect';
+                }
+
+                if(connectionMenuScreenGui.button('connect').state === 'connect') {
                     connectButtonConnectAction();
-                } else if(connectionMenuScreen.gui.buttons['connect'].state === 'disconnect') {
+                } else if(connectionMenuScreenGui.button('connect').state === 'disconnect') {
                     connectButtonDisconnectAction();
                 }
             });
-            connectionMenuScreen.gui.buttons['connect'].localizedText = 'connect';
-            connectionMenuScreen.gui.buttons['connect'].state = 'connect';
 
-            connectionMenuScreen.gui.addButton('startGame', 50, canvas.height - 200, localizeString('start', currentLocale, 'Start'), () => {
-                currentScreen = GAME_SCREEN;
+            connectionMenuScreenGui.addButton('hostGame', 'hostGame', 'Host game', () => {
+                if(peer === undefined) {
+                    logMessage(localizeString('mustConnectToServerBeforeHosting', currentLocale, 'Must connect to server before hosting'), 5000, 'error');
+                } else {
+                    hostOrGuest = 'host';
+                    currentScreen = HOST_SCREEN;
+
+                    if(hostGameStateHandler === undefined) {
+                        hostGameStateHandler = new HostGameStateHandler(gameState, guestConnections);
+                    }
+
+                    gameStateHandler = hostGameStateHandler;
+                }
             });
 
-            connectionMenuScreen.gui.addButton('back', 50, canvas.height - 200, 'Back', () => {
+            connectionMenuScreenGui.addButton('joinGame', 'joinGame', 'Join game', () => {
+                if(peer === undefined) {
+                    logMessage(localizeString('mustConnectToServerBeforeJoining', currentLocale, 'Must connect to server before joining'), 5000, 'error');
+                } else {
+                    hostOrGuest = 'guest';
+                    currentScreen = JOIN_SCREEN;
+
+                    if(guestGameStateHandler === undefined) {
+                        guestGameStateHandler = new GuestGameStateHandler(gameState, hostConnection);
+                    }
+
+                    gameStateHandler = guestGameStateHandler;
+                }
+            });
+
+            connectionMenuScreenGui.addButton('back', 'back', 'Back', () => {
                 currentScreen = MENU_SCREEN;
             });
-            connectionMenuScreen.gui.buttons['back'].localizedText = 'back';
 
-            connectionMenuScreen.gui.addButton('connectToPeer', 50, canvas.height - 100, localizeString('connectToPeer', currentLocale, 'Connect to peer'), () => {
-                let connection1 = peer.connect(connectionMenuScreen.gui.textInputs['peerId'].text + peerIDBase, {reliable: true});
-                connection1.on('open', function (id) {
-                    logMessage(localizeString('myPeerIdIs', currentLocale, 'My peer ID is: ') + id);
 
-                    connection1.send(localizeString('helloFrom', currentLocale, 'Hello from ') + myPeerId);
-                });
-                connection = connection1;
-                connection.on('data', (data) => {
-                    logMessage(localizeString('received', currentLocale, 'Received: ') + typeof(data));
-                    // data might not be string, so we need to convert it to string
-                    logMessage(localizeString('received', currentLocale, 'Received: ') + data.toString());
-                });
-                
+
+            let hostScreenGui = new GUI(images);
+            hostScreenGui.relayout = () => {
+                let startGameButton = hostScreenGui.button('startGame');
+                let backButton = hostScreenGui.button('back');
+
+                startGameButton.y = canvas.height - 100 * uiScale;
+                startGameButton.x = 50 * uiScale;
+
+                backButton.y = canvas.height - 200 * uiScale;
+                backButton.x = 50 * uiScale;
+            };
+            
+            hostScreenGui.addButton('startGame', 'startGame', 'Start game', () => {
+                currentScreen = GAME_SCREEN;
+                logoPositionState = 'hidden';
             });
 
-            connectionMenuScreen.gui.buttons['connectToPeer'].localizedText = 'connectToPeer';
+            hostScreenGui.addButton('back', 'back', 'Back', () => {
+                currentScreen = CONNECTION_SCREEN;
+            });
 
-            let settingsScreen = {}
-            settingsScreen.gui = new GUI(images);
-            settingsScreen.gui.relayout = () => layoutFromTheBottom(settingsScreen.gui);
 
-            settingsScreen.gui.addButton('changeLocale', 50, canvas.height - 100, 'Change language', () => {
+
+            let joinScreenGui = new GUI(images);
+            joinScreenGui.relayout = () => {
+                let joinHostButton = joinScreenGui.button('joinHost');
+                let hostIDTextInput = joinScreenGui.textInput('hostID');
+                let backButton = joinScreenGui.button('back');
+
+                hostIDTextInput.y = canvas.height - 400 * uiScale;
+                hostIDTextInput.x = 50 * uiScale;
+
+                joinHostButton.y = canvas.height - 400 * uiScale;
+                joinHostButton.x = 50 * uiScale + hostIDTextInput.width + 20 * uiScale;
+
+                backButton.y = canvas.height - 200 * uiScale;
+                backButton.x = 50 * uiScale;
+            };
+
+            joinScreenGui.addTextInput('hostID', 'hostID', 'Host ID');
+
+            joinScreenGui.addButton('joinHost', 'joinHost', 'Join host', () => {
+                if(hostConnection !== undefined) {
+                    logMessage(localizeString('alreadyConnectedToHost', currentLocale, 'Already connected to host'), 5000, 'error');
+                } else {
+                    let hostIdInputValue = joinScreenGui.textInput('hostID').text;
+
+                    if(!validPeerId(hostIdInputValue)) {
+                        logMessage(localizeString('invalidHostId', currentLocale, 'Invalid host ID'), 5000, 'error');
+                        return;
+                    }
+
+                    let hostId = hostIdInputValue + peerIDBase;
+
+                    hostConnection = peer.connect(hostId, {reliable: true});
+                    hostConnection.on('open', function (id) {
+                        logMessage(localizeString('connectedToHost', currentLocale, 'Connected to host: ') + hostId);
+
+                        guestGameStateHandler.host = hostConnection;
+
+                        gameStateHandler.broadcastMessage(localizeString('helloFrom', currentLocale, 'Hello from ') + myPeerId + '!');
+
+                        currentScreen = GAME_SCREEN;
+                        logoPositionState = 'hidden';
+                    });
+                    hostConnection.on('data', (data) => {
+                        gameStateHandler.processAction(data);
+                    });
+                }
+            });
+
+            joinScreenGui.addButton('back', 'back', 'Back', () => {
+                currentScreen = CONNECTION_SCREEN;
+            });
+
+
+
+            let settingsScreenGui = new GUI(images);
+            settingsScreenGui.relayout = () => layoutFromTheBottom(settingsScreenGui);
+
+            settingsScreenGui.addButton('changeLocale', 'changeLocale', 'Change language', () => {
                 let listOfLocaleOptions = Object.keys(strings);
                 let currentLocaleIndex = listOfLocaleOptions.indexOf(currentLocale);
                 currentLocaleIndex++;
@@ -852,52 +1126,40 @@ window.onload = function () {
                 }
                 currentLocale = listOfLocaleOptions[currentLocaleIndex];
             });
-            settingsScreen.gui.buttons['changeLocale'].localizedText = 'changeLocale';
 
-            settingsScreen.gui.addButton('fullscreen', 50, canvas.height - 300, localizeString('fullscreen', currentLocale, 'Fullscreen'), () => {
+            settingsScreenGui.addButton('fullscreen', 'fullscreen', 'Fullscreen', () => {
                 if(canvasIsFullscreen) {
                     document.exitFullscreen();
                 } else {
                     goFullscreen();
                 }
             });
-            settingsScreen.gui.buttons['fullscreen'].localizedText = 'fullscreen';
-            settingsScreen.gui.buttons['fullscreen'].mode = 'toggle';
+            settingsScreenGui.button('fullscreen').mode = 'toggle';
 
-            settingsScreen.gui.addButton('toggleDebug', 50, canvas.height - 400, localizeString('toggleDebug', currentLocale, 'Toggle debug'), () => {
+            settingsScreenGui.addButton('toggleDebug', 'toggleDebug', 'Toggle debug', () => {
                 debug = !debug;
             });
-            settingsScreen.gui.buttons['toggleDebug'].localizedText = 'toggleDebug';
 
-            settingsScreen.gui.addButton('back', 50, canvas.height - 200, localizeString('back', currentLocale, 'Back'), () => {
+            settingsScreenGui.addButton('back', 'back', 'Back', () => {
                 currentScreen = MENU_SCREEN;
             });
-            settingsScreen.gui.buttons['back'].localizedText = 'back';
 
 
-            let gameScreen = {};
-            gameScreen.gui = new GUI(images);
-            gameScreen.gui.relayout = () => layoutFromTheBottom(gameScreen.gui);
+            let gameScreeGui = new GUI(images);
+            gameScreeGui.relayout = () => layoutFromTheBottom(gameScreeGui);
 
-            gameScreen.gui.addTextInput('message', 50, canvas.height - 100, localizeString('message', currentLocale, 'Message'));
-            gameScreen.gui.textInputs['message'].localizedText = 'message';
+            gameScreeGui.addTextInput('message', 'message', 'Message');
 
-            gameScreen.gui.addButton('sendMessage', 50, canvas.height - 200, localizeString('sendMessage', currentLocale, 'Send message'), () => {
-                let message = gameScreen.gui.textInputs['message'].text;
+            gameScreeGui.addButton('sendMessage', 'sendMessage', 'Send message', () => {
+                let message = gameScreeGui.textInput('message').text;
 
-                console.log(peer.connections);
-                
-                //for(let connection of Object.values(peer.connections)) {
-                //    console.log(connection[0].send)
-                //    connection[0].send(message);
-                //}
-                if(connection !== undefined) {
-                    connection.send(message);
-                }
+                gameStateHandler.broadcastMessage(message);
             });
+
 
             let map = [];
             let currentType = 'grassTile';
+
 
             canvas.oncontextmenu = (e) => {
                 return false;
@@ -924,15 +1186,21 @@ window.onload = function () {
                         currentScreen = MENU_SCREEN;
                         break;
                     case MENU_SCREEN:
-                        mainMenuScreen.gui.handleMouseClick(mouse.x, mouse.y);
+                        mainMenuScreenGui.handleMouseClick(mouse.x, mouse.y);
                         break;
                     case CONNECTION_SCREEN:
-                        connectionMenuScreen.gui.handleMouseClick(mouse.x, mouse.y);
+                        connectionMenuScreenGui.handleMouseClick(mouse.x, mouse.y);
+                        break;
+                    case HOST_SCREEN:
+                        hostScreenGui.handleMouseClick(mouse.x, mouse.y);
+                        break;
+                    case JOIN_SCREEN:
+                        joinScreenGui.handleMouseClick(mouse.x, mouse.y);
                         break;
                     case GAME_SCREEN:
                         let mouseButton = e.button;
 
-                        gameScreen.gui.handleMouseClick(mouse.x, mouse.y);
+                        gameScreeGui.handleMouseClick(mouse.x, mouse.y);
 
                         if(mouseButton === 0) {
                             let tile = {};
@@ -951,7 +1219,7 @@ window.onload = function () {
                         }
                         break;
                     case SETTINGS_SCREEN:
-                        settingsScreen.gui.handleMouseClick(mouse.x, mouse.y);
+                        settingsScreenGui.handleMouseClick(mouse.x, mouse.y);
                         break;
                 }
             };
@@ -1053,8 +1321,8 @@ window.onload = function () {
 
                         drawLogoImage();
                         
-                        mainMenuScreen.gui.relayout();
-                        mainMenuScreen.gui.draw(context);
+                        mainMenuScreenGui.relayout();
+                        mainMenuScreenGui.draw(context);
                         break;
                     case CONNECTION_SCREEN:
                         if(logoPositionState != 'hidden') {
@@ -1075,31 +1343,68 @@ window.onload = function () {
 
                         drawLogoImage();
                         
-                        connectionMenuScreen.gui.relayout();
-                        connectionMenuScreen.gui.draw(context);
+                        connectionMenuScreenGui.relayout();
+                        connectionMenuScreenGui.draw(context);
 
                         break;
-                    case GAME_SCREEN:
+                    case HOST_SCREEN:
                         if(logoPositionState != 'hidden') {
                             logoPositionState = 'hidden';
                         }
 
-                        // context.fillStyle = 'rgb(' + (((Math.sin(Date.now()/1000*5) + 1)/2)*50+50) + ', 0, 255)';
-                        // context.fillRect(0, 0, canvas.width, canvas.height);
-                
-                        
-                        // context.fillStyle = 'white';
-                        // context.beginPath();
-                        // context.ellipse(mouse.x, mouse.y, 25, 25, 0, 0, 2 * Math.PI);
-                        // context.fill();
+                        context.fillStyle = 'rgb(0, 0, 0, 255)';
+                        context.fillRect(0, 0, canvas.width, canvas.height);
 
+                        // Draw the main menu background image to fit the screen:
+                        if(images['mainBackground'].width/images['mainBackground'].height > canvas.width/canvas.height) {
+                            // The image is wider than the canvas, so we need to scale it to fit the canvas width:
+                            context.drawImage(images['mainBackground'], canvas.width/2 - (canvas.height*images['mainBackground'].width/images['mainBackground'].height) / 2, 0, canvas.height*images['mainBackground'].width/images['mainBackground'].height, canvas.height);
+                        } else {
+                            // The image is taller than the canvas, so we need to scale it to fit the canvas height:
+                            context.drawImage(images['mainBackground'], 0, canvas.height/2 - (canvas.width*images['mainBackground'].height/images['mainBackground'].width) / 2, canvas.width, canvas.width*images['mainBackground'].height/images['mainBackground'].width);
+                        }
+
+                        drawLogoImage();
+
+                        hostScreenGui.relayout();
+                        hostScreenGui.draw(context);
+                        break;
+                    case JOIN_SCREEN:
+                        if(logoPositionState != 'hidden') {
+                            logoPositionState = 'hidden';
+                        }
+
+                        context.fillStyle = 'rgb(0, 0, 0, 255)';
+                        context.fillRect(0, 0, canvas.width, canvas.height);
+
+                        // Draw the main menu background image to fit the screen:
+                        if(images['mainBackground'].width/images['mainBackground'].height > canvas.width/canvas.height) {
+                            // The image is wider than the canvas, so we need to scale it to fit the canvas width:
+                            context.drawImage(images['mainBackground'], canvas.width/2 - (canvas.height*images['mainBackground'].width/images['mainBackground'].height) / 2, 0, canvas.height*images['mainBackground'].width/images['mainBackground'].height, canvas.height);
+                        } else {
+                            // The image is taller than the canvas, so we need to scale it to fit the canvas height:
+                            context.drawImage(images['mainBackground'], 0, canvas.height/2 - (canvas.width*images['mainBackground'].height/images['mainBackground'].width) / 2, canvas.width, canvas.width*images['mainBackground'].height/images['mainBackground'].width);
+                        }
+
+                        drawLogoImage();
+
+                        joinScreenGui.relayout();
+                        joinScreenGui.draw(context);
+                        break;
+                    case GAME_SCREEN:
+                        //gameStateHandler.broadcastPlayerPosition({x: mouse.x, y: mouse.y});
+                        
+                        if(hostOrGuest === 'guest') {
+                            gameStateHandler.sendResponses();
+                        } else if(hostOrGuest === 'host') {
+                            gameStateHandler.broadcastActions();
+                        }
+
+                        // Background color:
                         context.fillStyle = 'rgb(200, 200, 200, 255)';
                         context.fillRect(0, 0, canvas.width, canvas.height);
 
-
-
-                
-                        
+                        // Cursor:
                         context.fillStyle = 'white';
                         context.beginPath();
                         context.ellipse(mouse.x, mouse.y, 10, 10, 0, 0, 2 * Math.PI);
@@ -1124,8 +1429,17 @@ window.onload = function () {
                         context.lineTo(canvas.width, mouse.y);
                         context.stroke();
 
-                        gameScreen.gui.relayout();
-                        gameScreen.gui.draw(context);
+                        // Draw positions of other player's cursors:
+                        for(let peerId in gameState.playerPositions) {
+                            let position = gameState.playerPositions[peerId];
+                            context.fillStyle = 'black';
+                            context.beginPath();
+                            context.ellipse(position.x, position.y, 10, 10, 0, 0, 2 * Math.PI);
+                            context.fill();
+                        }
+
+                        gameScreeGui.relayout();
+                        gameScreeGui.draw(context);
                         break;
                     case SETTINGS_SCREEN:
                         if(logoPositionState != 'hidden') {
@@ -1146,9 +1460,9 @@ window.onload = function () {
 
                         drawLogoImage();
                         
-                        settingsScreen.gui.buttons['fullscreen'].toggled = canvasIsFullscreen;
-                        settingsScreen.gui.relayout();
-                        settingsScreen.gui.draw(context);
+                        settingsScreenGui.button('fullscreen').toggled = canvasIsFullscreen;
+                        settingsScreenGui.relayout();
+                        settingsScreenGui.draw(context);
 
                         break;
                 }
