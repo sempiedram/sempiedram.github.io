@@ -594,6 +594,7 @@ function validPeerId(peerId) {
 class GameState {
     constructor() {
         this.playerPositions = {};
+        this.map = [];
     }
 
     applyAction(action) {
@@ -606,6 +607,9 @@ class GameState {
                 break;
             case 'actionResponse':
                 //console.log('Action response: ' + action.actionId);
+                break;
+            case 'placeThing':
+                this.map.push(action.tile);
                 break;
             default:
                 console.error('Unknown action type: ' + action.type);
@@ -743,6 +747,10 @@ class HostGameStateHandler {
     broadcastPlayerPosition(position) {
         this.broadcastAction({type: 'playerPosition', position: position, peerId: myPeerId, actionId: createRandomActionId()}); 
     }
+
+    broadcastPlaceThing(tile) {
+        this.broadcastAction({type: 'placeThing', tile: tile, peerId: myPeerId, actionId: createRandomActionId()}); 
+    }
 }
 
 class GuestGameStateHandler {
@@ -782,6 +790,12 @@ class GuestGameStateHandler {
         let positionAction = {type: 'playerPosition', position: position, peerId: myPeerId, actionId: createRandomActionId()};
         this.host.send(positionAction);
         this.gameState.applyAction(positionAction);
+    }
+
+    broadcastPlaceThing(tile) {
+        let placeThingAction = {type: 'placeThing', tile: tile, peerId: myPeerId, actionId: createRandomActionId()};
+        this.host.send(placeThingAction);
+        this.gameState.applyAction(placeThingAction);
     }
 }
 
@@ -1191,8 +1205,6 @@ window.onload = function () {
                 gameStateHandler.broadcastMessage(message);
             });
 
-
-            let map = [];
             let currentType = 'grassTile';
 
 
@@ -1242,7 +1254,8 @@ window.onload = function () {
                             tile.x = mouse.x - images[currentType].width/2;
                             tile.y = mouse.y - images[currentType].height/2;
                             tile.type = currentType;
-                            map.push(tile);
+                            //gameState.map.push(tile);
+                            gameStateHandler.broadcastPlaceThing(tile);
                         } else if(mouseButton === 2) {
                             if(currentType === 'grassTile') {
                                 currentType = 'wallTile';
@@ -1445,8 +1458,8 @@ window.onload = function () {
                         context.ellipse(mouse.x, mouse.y, 10, 10, 0, 0, 2 * Math.PI);
                         context.fill();
 
-                        for(let i = 0; i < map.length; i++) {
-                            let tile = map[i];
+                        for(let i = 0; i < gameState.map.length; i++) {
+                            let tile = gameState.map[i];
                             context.drawImage(images[tile.type], tile.x, tile.y);
                         }
 
