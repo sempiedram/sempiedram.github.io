@@ -16,6 +16,7 @@ let gameState = undefined;
 let hostOrGuest = 'host';
 
 let mouse = {x: 0, y: 0};
+let keys = {};
 
 let lastFrameTime = 0;
 
@@ -76,7 +77,19 @@ let strings = {
         'empires': 'Empires',
         'DDD': 'DDD',
         'toggleDebug': 'Toggle debug',
-        'sendMessage': 'Send message'
+        'sendMessage': 'Send message',
+        'hostGame': 'Host game',
+        'joinGame': 'Join game',
+        'startGame': 'Start game',
+        'hostId': 'Host ID',
+        'joinHost': 'Join host',
+        'changeLocale': 'Change language',
+        'message': 'Message',
+        'connectedToHost': 'Connected to host: ',
+        'connectedPlayers': 'Connected players',
+        'you': 'You',
+        'host': 'Host',
+        'chat': 'Chat'
     },
     'es': {
         'start': 'Empezar',
@@ -109,7 +122,19 @@ let strings = {
         'empires': 'Imperios',
         'DDD': 'DDD',
         'toggleDebug': 'Alternar depuración',
-        'sendMessage': 'Enviar mensaje'
+        'sendMessage': 'Enviar mensaje',
+        'hostGame': 'Hospedar partida',
+        'joinGame': 'Unirse a partida',
+        'startGame': 'Iniciar partida',
+        'hostId': 'ID de host',
+        'joinHost': 'Unirse a host',
+        'changeLocale': 'Cambiar idioma',
+        'message': 'Mensaje',
+        'connectedToHost': 'Conectado a host: ',
+        'connectedPlayers': 'Jugadores conectados',
+        'you': 'Tú',
+        'host': 'Anfitrión',
+        'chat': 'Chat'
     },
     'jp': {
         'start': 'スタート',
@@ -142,7 +167,19 @@ let strings = {
         'empires': 'エンパイア',
         'DDD': 'DDD',
         'toggleDebug': 'デバッグを切り替える',
-        'sendMessage': 'メッセージを送信する'
+        'sendMessage': 'メッセージを送信する',
+        'hostGame': 'ホストゲーム',
+        'joinGame': 'ゲームに参加',
+        'startGame': 'ゲームを開始',
+        'hostId': 'ホストID',
+        'joinHost': 'ホストに参加',
+        'changeLocale': '言語を変更',
+        'message': 'メッセージ',
+        'connectedToHost': 'ホストに接続しました: ',
+        'connectedPlayers': '接続されたプレイヤー',
+        'you': 'あなた',
+        'host': 'ホスト',
+        'chat': 'チャット'
     }
 };
 
@@ -186,7 +223,7 @@ function logMessage(msg, duration, type) {
         console.log(msg);
     }
     
-    logMessages.push({text: msg, time: Date.now(), duration: duration, type: type});
+    logMessages.push({text: msg, time: Date.now(), duration: duration, type: type, deadTime: Date.now() + duration});
 }
 
 class GUI {
@@ -547,15 +584,23 @@ function resizeCanvas() {
 function drawLogMessages() {
     let logMessageHeight = 40 * uiScale;
     let logMessagePadding = 10 * uiScale;
+    let currentLogY = 0;
 
     context.font = (20 * uiScale) + 'px Arial';
     
     for(let i = 0; i < logMessages.length; i++) {
         let logMessage = logMessages[i];
+
+        if(Date.now() > logMessage.deadTime) {
+            continue;
+        }
+
+        currentLogY -= logMessageHeight + logMessagePadding;
+
         let logMessageWidth = context.measureText(logMessage.text).width + logMessagePadding * 2;
 
         let logMessageX = canvas.width - logMessageWidth - logMessagePadding;
-        let logMessageY = canvas.height - logMessageHeight - logMessagePadding - i * (logMessageHeight + logMessagePadding);
+        let logMessageY = canvas.height - logMessagePadding + currentLogY;
 
         // Rounded corner box:
         context.fillStyle = 'rgb(245, 245, 245, 255)';
@@ -565,6 +610,8 @@ function drawLogMessages() {
         } else if(logMessage.type === 'warning') {
             context.fillStyle = 'rgb(255, 250, 242, 255)';
         } else if(logMessage.type === 'notice') {
+            context.fillStyle = 'rgb(229, 246, 213, 255)';
+        } else if(logMessage.type === 'chat') {
             context.fillStyle = 'rgb(229, 246, 213, 255)';
         }
 
@@ -588,12 +635,12 @@ function drawLogMessages() {
     }
 
     // Remove old log messages:
-    for(let i = logMessages.length - 1; i >= 0; i--) {
+    /*for(let i = logMessages.length - 1; i >= 0; i--) {
         let logMessage = logMessages[i];
         if(Date.now() - logMessage.time > logMessage.duration) {
             logMessages.splice(i, 1);
         }
-    }
+    }*/
 }
 
 
@@ -616,7 +663,7 @@ class GameState {
                 this.playerPositions[action.peerId] = action.position;
                 break;
             case 'broadcastMessage':
-                logMessage(action.peerId + ': ' + action.message, 6000, 'notice');
+                logMessage(action.peerId + ': ' + action.message, 6000, 'chat');
                 break;
             case 'actionResponse':
                 //console.log('Action response: ' + action.actionId);
@@ -625,16 +672,34 @@ class GameState {
                 this.map.push(action.tile);
                 break;
             case 'playerConnectionStatus':
-                this.players[action.playerId] = action.status;
+                if(this.players[action.playerId] === undefined) {
+                    this.players[action.playerId] = {};
+                }
+
+                this.players[action.playerId].status = action.status;
                 break;
             case 'playerSync':
-                this.players[action.playerId] = action.playerData;
+                this.players[action.playerId].data = action.data;
                 break;
             default:
                 console.error('Unknown action type: ' + action.type);
                 break;
         }
     }
+}
+
+function removePeerIdBase(peerId) {
+    let baseLength = peerIDBase.length;
+    let peerIdBaseIndex = peerId.indexOf(peerIDBase);
+    if(peerIdBaseIndex === -1) {
+        return peerId;
+    }
+
+    if(peerIdBaseIndex === 0) {
+        return "";
+    }
+
+    return peerId.substring(0, peerIdBaseIndex);
 }
 
 function createRandomActionId() {
@@ -769,6 +834,18 @@ class HostGameStateHandler {
 
     broadcastPlaceThing(tile) {
         this.broadcastAction({type: 'placeThing', tile: tile, peerId: myPeerId, actionId: createRandomActionId()}); 
+    }
+
+    broadcastConnectedPlayers() {
+        for(let guest of Object.values(this.guests)) {
+            this.broadcastAction({type: 'playerConnectionStatus', playerId: removePeerIdBase(guest.peer), status: 'connected', peerId: myPeerId, actionId: createRandomActionId()});
+        }
+
+        this.broadcastAction({type: 'playerConnectionStatus', playerId: myPeerId, status: 'host', peerId: myPeerId, actionId: createRandomActionId()});
+    }
+
+    broadcastPlayerSync(playerId, data) {
+        this.broadcastAction({type: 'playerSync', playerId: playerId, data: data, peerId: myPeerId, actionId: createRandomActionId()});
     }
 }
 
@@ -1120,6 +1197,8 @@ window.onload = function () {
             hostScreenGui.addButton('startGame', 'startGame', 'Start game', () => {
                 currentScreen = GAME_SCREEN;
                 logoPositionState = 'hidden';
+
+                hostGameStateHandler.broadcastConnectedPlayers();
             });
 
             hostScreenGui.addButton('back', 'back', 'Back', () => {
@@ -1131,26 +1210,26 @@ window.onload = function () {
             let joinScreenGui = new GUI(images);
             joinScreenGui.relayout = () => {
                 let joinHostButton = joinScreenGui.button('joinHost');
-                let hostIDTextInput = joinScreenGui.textInput('hostID');
+                let hostIdTextInput = joinScreenGui.textInput('hostId');
                 let backButton = joinScreenGui.button('back');
 
-                hostIDTextInput.y = canvas.height - 400 * uiScale;
-                hostIDTextInput.x = 50 * uiScale;
+                hostIdTextInput.y = canvas.height - 400 * uiScale;
+                hostIdTextInput.x = 50 * uiScale;
 
                 joinHostButton.y = canvas.height - 400 * uiScale;
-                joinHostButton.x = 50 * uiScale + hostIDTextInput.width + 20 * uiScale;
+                joinHostButton.x = 50 * uiScale + hostIdTextInput.width + 20 * uiScale;
 
                 backButton.y = canvas.height - 200 * uiScale;
                 backButton.x = 50 * uiScale;
             };
 
-            joinScreenGui.addTextInput('hostID', 'hostID', 'Host ID');
+            joinScreenGui.addTextInput('hostId', 'hostId', 'Host ID');
 
             joinScreenGui.addButton('joinHost', 'joinHost', 'Join host', () => {
                 if(hostConnection !== undefined) {
                     logMessage(localizeString('alreadyConnectedToHost', currentLocale, 'Already connected to host'), 5000, 'error');
                 } else {
-                    let hostIdInputValue = joinScreenGui.textInput('hostID').text;
+                    let hostIdInputValue = joinScreenGui.textInput('hostId').text;
 
                     if(!validPeerId(hostIdInputValue)) {
                         logMessage(localizeString('invalidHostId', currentLocale, 'Invalid host ID'), 5000, 'error');
@@ -1323,7 +1402,18 @@ window.onload = function () {
                 mouse.pressed = false;
             };
 
+            // Keep track of key states:
+            window.onkeydown = (e) => {
+                e.preventDefault();
+                keys[e.key] = true;
+            };
 
+            window.onkeyup = (e) => {
+                e.preventDefault();
+                keys[e.key] = false;
+            };
+
+            
             function gameLoop() {
                 let fps = 1000/(Date.now() - lastFrameTime);
                 lastFrameTime = Date.now();
@@ -1503,6 +1593,60 @@ window.onload = function () {
                             context.beginPath();
                             context.ellipse(position.x, position.y, 10, 10, 0, 0, 2 * Math.PI);
                             context.fill();
+                        }
+
+                        if(keys['Tab']) {
+                            // Show connected players on the top right corner:
+
+                            let connectedPlayers = Object.keys(gameState.players).filter((playerId) => gameState.players[playerId].status === 'connected' || gameState.players[playerId].status === 'host');
+
+                            let maxWidth = 0;
+                            let connectedPlayersText = localizeString('connectedPlayers', currentLocale, 'Connected players') + ':';
+
+                            context.fillStyle = 'black';
+                            context.font = '12px Arial';
+                            for(let i = 0; i < connectedPlayers.length; i++) {
+                                let width = context.measureText(connectedPlayers[i]).width;
+                                if(width > maxWidth) {
+                                    maxWidth = width;
+                                }
+                            }
+
+                            context.measureText(connectedPlayersText).width;
+                            if(context.measureText(connectedPlayersText).width > maxWidth) {
+                                maxWidth = context.measureText(connectedPlayersText).width;
+                            }
+
+                            context.fillStyle = 'rgba(255, 255, 255, 0.5)';
+                            context.fillRect(canvas.width - maxWidth - 100, 0, maxWidth + 100, 40 + 20 * connectedPlayers.length);
+
+                            context.fillStyle = 'black';
+                            context.fillText(connectedPlayersText, canvas.width - maxWidth - 80, 10);
+
+                            for(let i = 0; i < connectedPlayers.length; i++) {
+                                context.fillText(connectedPlayers[i], canvas.width - maxWidth - 80, 40 + 20 * i);
+
+                                if(connectedPlayers[i] === myPeerId) {
+                                    context.fillText(localizeString('you', currentLocale, 'You'), canvas.width - maxWidth + 10, 40 + 20 * i);
+                                } else if(gameState.players[connectedPlayers[i]].status === 'host') {
+                                    context.fillText(localizeString('host', currentLocale, 'Host'), canvas.width - maxWidth + 10, 40 + 20 * i);
+                                }
+                            }
+
+                            // Show chat messages on the bottom right corner:
+
+                            let chatMessages = logMessages; //.filter((message) => message.deadTime > Date.now());
+
+                            context.fillStyle = 'rgba(255, 255, 255, 0.5)';
+                            context.fillRect(canvas.width * 0.25, canvas.height - 60 - 20 * chatMessages.length, canvas.width * 0.75, 60 + 20 * chatMessages.length);
+
+                            context.fillStyle = 'black';
+                            context.font = '20px Arial';
+                            context.fillText(localizeString('chat', currentLocale, 'Chat') + ':', canvas.width * 0.25 + 10, canvas.height - 50 - 20 * chatMessages.length);
+
+                            for(let i = 0; i < chatMessages.length; i++) {
+                                context.fillText(chatMessages[i].text, canvas.width * 0.25 + 10, canvas.height - 20 * (chatMessages.length - i));
+                            }
                         }
 
                         gameScreeGui.relayout();
