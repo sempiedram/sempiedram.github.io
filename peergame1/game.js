@@ -627,6 +627,9 @@ class GameState {
             case 'playerConnectionStatus':
                 this.players[action.playerId] = action.status;
                 break;
+            case 'playerSync':
+                this.players[action.playerId] = action.playerData;
+                break;
             default:
                 console.error('Unknown action type: ' + action.type);
                 break;
