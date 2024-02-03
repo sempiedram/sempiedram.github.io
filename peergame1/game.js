@@ -40,6 +40,8 @@ let logMessages = [];
 let logoPosition = {x: 0, y: 0, size: 1};
 let logoPositionState = 'shown';
 
+let missedLocalizationKeys = {};
+
 // Translated strings:
 
 let strings = {
@@ -150,11 +152,20 @@ function localizeString(string, language, alternative) {
     if(strings[language] && strings[language][string]) {
         return strings[language][string];
     }
+
+    if(missedLocalizationKeys[language] === undefined) {
+        missedLocalizationKeys[language] = {};
+    }
+
+    if(missedLocalizationKeys[language][string] === undefined) {
+        console.error('Missing localization key: ' + string);
+    }
+    missedLocalizationKeys[language][string] = true;
     
     if(alternative) {
         return alternative;
     }
-
+    
     return strings['en'][string];
 }
 
@@ -595,6 +606,8 @@ class GameState {
     constructor() {
         this.playerPositions = {};
         this.map = [];
+        this.players = {};
+        this.currentPlayer = undefined;
     }
 
     applyAction(action) {
@@ -610,6 +623,9 @@ class GameState {
                 break;
             case 'placeThing':
                 this.map.push(action.tile);
+                break;
+            case 'playerConnectionStatus':
+                this.players[action.playerId] = action.status;
                 break;
             default:
                 console.error('Unknown action type: ' + action.type);
@@ -1207,7 +1223,7 @@ window.onload = function () {
 
             let currentType = 'grassTile';
 
-
+            // Disable right click context menu:
             canvas.oncontextmenu = (e) => {
                 return false;
             };
