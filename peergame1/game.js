@@ -6,6 +6,7 @@ let myPeerId = '';
 
 let hostConnection = undefined;
 let guestConnections = {};
+let connectionToHostAccepted = false;
 
 let hostGameStateHandler = undefined;
 let guestGameStateHandler = undefined;
@@ -13,7 +14,7 @@ let gameStateHandler = undefined;
 
 let gameState = undefined;
 
-let hostOrGuest = 'host';
+let hostOrGuest = 'none';
 
 let mouse = {x: 0, y: 0};
 let keys = {};
@@ -89,7 +90,10 @@ let strings = {
         'connectedPlayers': 'Connected players',
         'you': 'You',
         'host': 'Host',
-        'chat': 'Chat'
+        'chat': 'Chat',
+        'alreadyConnectedToHost': 'Already connected to a host',
+        'hostClosedConnection': 'Host closed connection',
+        'joining': 'Joining...'
     },
     'es': {
         'start': 'Empezar',
@@ -134,7 +138,10 @@ let strings = {
         'connectedPlayers': 'Jugadores conectados',
         'you': 'Tú',
         'host': 'Anfitrión',
-        'chat': 'Chat'
+        'chat': 'Chat',
+        'alreadyConnectedToHost': 'Ya está conectado a un host',
+        'hostClosedConnection': 'El anfitrión cerró la conexión',
+        'joining': 'Uniendose...'
     },
     'jp': {
         'start': 'スタート',
@@ -179,7 +186,10 @@ let strings = {
         'connectedPlayers': '接続されたプレイヤー',
         'you': 'あなた',
         'host': 'ホスト',
-        'chat': 'チャット'
+        'chat': 'チャット',
+        'alreadyConnectedToHost': 'すでにホストに接続しています',
+        'hostClosedConnection': 'ホストが接続を閉じました',
+        'joining': '参加中...'
     }
 };
 
@@ -649,6 +659,11 @@ function validPeerId(peerId) {
     return /^[a-zA-Z][a-zA-Z0-9_]*$/.test(peerId);
 }
 
+function sendMessage(connection, message, messageType) {
+    let messageAction = {type: 'broadcastMessage', message: message, messageType: messageType, peerId: myPeerId, actionId: createRandomActionId()};
+    connection.send(messageAction);
+}
+
 class GameState {
     constructor() {
         this.playerPositions = {};
@@ -663,7 +678,11 @@ class GameState {
                 this.playerPositions[action.peerId] = action.position;
                 break;
             case 'broadcastMessage':
-                logMessage(action.peerId + ': ' + action.message, 6000, 'chat');
+                if(action.messageType === undefined) {
+                    action.messageType = 'chat';
+                }
+
+                logMessage(action.peerId + ': ' + action.message, 6000, action.messageType);
                 break;
             case 'actionResponse':
                 //console.log('Action response: ' + action.actionId);
@@ -1044,10 +1063,12 @@ window.onload = function () {
                         connectionMenuScreenGui.button('connect').state = 'disconnect';
 
                         peer = tryConnectPeer;
+                    });
 
-                        // Here we accumulate connections from guests:
-                        peer.on('connection', (dataConnection) => {
+                    tryConnectPeer.on('connection', (dataConnection) => {
+                        dataConnection.on('open', () => {
                             if(hostOrGuest === 'host') {
+                                // Here we accumulate connections from guests:
                                 logMessage(localizeString('connectionReceivedFrom', currentLocale, 'Connection received from: ') + dataConnection.peer);
 
                                 if(debug) {
@@ -1058,11 +1079,21 @@ window.onload = function () {
                                     gameStateHandler.broadcastAction(data);
                                 });
 
-                                guestConnections[dataConnection.peer] = dataConnection;
-                            } else if (hostOrGuest === 'guest') {
-                                logMessage(localizeString('guestModeShouldntReceiveConnections', currentLocale, 'Guest mode shouldn\'t receive connections'), 5000, 'error');
+                                //console.log("Sending confirmation to " + dataConnection.peer + " with myPeerId: " + myPeerId);
+                                dataConnection.send({type: 'acceptedConnection', peerId: myPeerId});
 
-                                dataConnection.close();
+                                guestConnections[dataConnection.peer] = dataConnection;
+                            } else {
+                                logMessage(localizeString('receivedConnectionButNotAHost', currentLocale, 'Received connection, but not in host mode'), 5000, 'error');
+
+                                // The guest expects to receive either acceptedConnection or some kind of rejection:
+                                //console.log("Sending rejection to " + dataConnection.peer + " with myPeerId: " + myPeerId);
+                                //sendMessage(dataConnection, localizeString('imNotAHost', currentLocale, 'I am not a host'), 'error');
+                                dataConnection.send({type: 'rejectedConnection', peerId: myPeerId});
+
+                                setTimeout(() => {
+                                    dataConnection.close();
+                                }, 1000);
                             }
                         });
                     });
@@ -1226,37 +1257,78 @@ window.onload = function () {
             joinScreenGui.addTextInput('hostId', 'hostId', 'Host ID');
 
             joinScreenGui.addButton('joinHost', 'joinHost', 'Join host', () => {
-                if(hostConnection !== undefined) {
-                    logMessage(localizeString('alreadyConnectedToHost', currentLocale, 'Already connected to host'), 5000, 'error');
-                } else {
-                    let hostIdInputValue = joinScreenGui.textInput('hostId').text;
+                let joinButtonState = joinScreenGui.button('joinHost').state;
 
-                    if(!validPeerId(hostIdInputValue)) {
-                        logMessage(localizeString('invalidHostId', currentLocale, 'Invalid host ID'), 5000, 'error');
-                        return;
+                if(joinButtonState === 'join') {
+                    joinScreenGui.button('joinHost').state = 'joining';
+                    joinScreenGui.button('joinHost').localizedText = 'joining';
+
+                    if(hostConnection !== undefined) {
+                        logMessage(localizeString('alreadyConnectedToHost', currentLocale, 'Already connected to host'), 5000, 'error');
+                    } else {
+                        // Try to connect to the host:
+                        let hostIdInputValue = joinScreenGui.textInput('hostId').text;
+    
+                        if(!validPeerId(hostIdInputValue)) {
+                            logMessage(localizeString('invalidHostId', currentLocale, 'Invalid host ID'), 5000, 'error');
+                            return;
+                        }
+    
+                        let hostId = hostIdInputValue + peerIDBase;
+    
+                        let attemptedHostConnection = peer.connect(hostId, {reliable: true});
+
+                        // Now wait for host to accept the connection:
+                        attemptedHostConnection.on('data', (data) => {
+                            //console.log("Received data: ");
+                            //console.log(data);
+                            if(hostConnection !== undefined) {
+                                gameStateHandler.processAction(data);
+                            } else {
+                                if(data.type === 'acceptedConnection') {
+                                    logMessage(localizeString('hostAcceptedTheConnection', currentLocale, 'Host accepted the connection'), 5000, 'notice');
+                                    logMessage(localizeString('connectedToHost', currentLocale, 'Connected to host: ') + hostId);
+                                    hostConnection = attemptedHostConnection;
+                                    guestGameStateHandler.host = hostConnection;
+                                    
+                                    currentScreen = GAME_SCREEN;
+                                    logoPositionState = 'hidden';
+
+                                    joinScreenGui.button('joinHost').state = 'join';
+                                } else {
+                                    logMessage(localizeString('hostRejectedTheConnection', currentLocale, 'Host rejected the connection'), 5000, 'error');
+                                    attemptedHostConnection.close();
+                                    hostConnection = undefined;
+                                }
+                            }
+                        });
+                        
+                        attemptedHostConnection.on('open', function (id) {
+                            logMessage(localizeString('connectedToHost', currentLocale, 'Connected to host: ') + hostId);
+                        });
+                        
+                        // If the host rejects the connection:
+                        attemptedHostConnection.on('close', () => {
+                            logMessage(localizeString('hostClosedTheConnection', currentLocale, 'Host closed the connection'), 5000, 'error');
+                            hostConnection = undefined;
+                            joinScreenGui.button('joinHost').state = 'join';
+                            joinScreenGui.button('joinHost').localizedText = 'joinHost';
+                        });
                     }
-
-                    let hostId = hostIdInputValue + peerIDBase;
-
-                    hostConnection = peer.connect(hostId, {reliable: true});
-                    hostConnection.on('open', function (id) {
-                        logMessage(localizeString('connectedToHost', currentLocale, 'Connected to host: ') + hostId);
-
-                        guestGameStateHandler.host = hostConnection;
-
-                        gameStateHandler.broadcastMessage(localizeString('helloFrom', currentLocale, 'Hello from ') + myPeerId + '!');
-
-                        currentScreen = GAME_SCREEN;
-                        logoPositionState = 'hidden';
-                    });
-                    hostConnection.on('data', (data) => {
-                        gameStateHandler.processAction(data);
-                    });
+                } else if(joinButtonState === 'joining') {
+                    // Do nothing
                 }
+
+                
             });
+            joinScreenGui.button('joinHost').state = 'join';
 
             joinScreenGui.addButton('back', 'back', 'Back', () => {
-                currentScreen = CONNECTION_SCREEN;
+                let joinButtonState = joinScreenGui.button('joinHost').state;
+
+                if(joinButtonState !== 'joining') {
+                    currentScreen = CONNECTION_SCREEN;
+                }
             });
 
 
